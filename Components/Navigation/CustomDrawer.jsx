@@ -97,63 +97,63 @@ const CustomDrawer = (props) => {
           <TouchableOpacity
             style={[styles.customButton]}
             onPress={() => console.log('Profile pressed')}>
-            <MaterialIcons name="dashboard" size={20} color="#000" />
+            <MaterialIcons name="dashboard" size={20} color="#ffe3afff" />
             <Text style={styles.newButtonText}>Dashboard</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.customButton]}
             onPress={() => console.log('Notifications pressed')}>
-            <MaterialIcons name="calendar-month" size={20} color="#000" />
+            <MaterialIcons name="calendar-month" size={20} color="#ffe3afff" />
             <Text style={styles.newButtonText}>Calender</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.customButton]}
             onPress={() => console.log('Reports pressed')}>
-            <MaterialIcons name="chat" size={20} color="#000" />
+            <MaterialIcons name="chat" size={20} color="#ffe3afff" />
             <Text style={styles.newButtonText}>Chats</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.customButton]}
             onPress={() => console.log('Support pressed')}>
-            <FontAwesome name="wpforms" size={20} color="#000" />
+            <FontAwesome name="wpforms" size={20} color="#ffe3afff" />
             <Text style={styles.newButtonText}>Forms</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.customButton]}
             onPress={() => console.log('Support pressed')}>
-            <MaterialIcons name="view-list" size={20} color="#000" />
+            <MaterialIcons name="view-list" size={20} color="#ffe3afff" />
             <Text style={styles.newButtonText}>Attandance list</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.customButton]}
             onPress={() => console.log('Support pressed')}>
-            <AntDesign name="form" size={20} color="#000" />
+            <AntDesign name="form" size={20} color="#ffe3afff" />
             <Text style={styles.newButtonText}>Register User Form</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.customButton]}
             onPress={() => console.log('Support pressed')}>
-            <FontAwesome5 name="tasks" size={20} color="#000" />
+            <FontAwesome5 name="tasks" size={20} color="#ffe3afff" />
             <Text style={styles.newButtonText}>Task Manager</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.customButton]}
             onPress={() => navigation.navigate('AllUsers')}>
-            <FontAwesome name="users" size={20} color="#000" />
+            <FontAwesome name="users" size={20} color="#ffe3afff" />
             <Text style={styles.newButtonText}>All Users</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.customButton]}
             onPress={() => console.log('Support pressed')}>
-            <FontAwesome5 name="search-location" size={20} color="#000" />
+            <FontAwesome5 name="search-location" size={20} color="#ffe3afff" />
             <Text style={styles.newButtonText}>Employee Tracker</Text>
           </TouchableOpacity>
         </View>
@@ -187,13 +187,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 7,
     borderRadius: 8,
-    marginVertical: 6,
-    backgroundColor: '#D2AF6F',
+    marginVertical: 4,
+    backgroundColor: '#4E8D7C',
   },
   newButtonText: {
     marginLeft: 10,
     fontSize: 16,
-    color: '#000',
+    color: '#ffe3afff',
     fontWeight: "700"
   },
   scrollContainer: {
@@ -206,6 +206,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#D2AF6F',
     borderBottomWidth: 1,
     borderBottomColor: '#000',
+    marginBottom:10
   },
   profileContainer: {
     flexDirection: 'column',
