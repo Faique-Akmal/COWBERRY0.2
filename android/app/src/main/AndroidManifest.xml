@@ -1,6 +1,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- CAMERA permission -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Foreground location (accurate GPS) -->
+   <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+   <!-- Coarse location (approximate) -->
+   <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+   <!-- Background location (app closed / minimized hone par tracking) -->
+   <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
+
 
     <application
       android:name=".MainApplication"
