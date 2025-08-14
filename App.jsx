@@ -16,8 +16,8 @@ useEffect(() => {
   const checkStoredTokens = async () => {
     const refresh = await AsyncStorage.getItem('refreshToken');
     const access = await AsyncStorage.getItem('accessToken');
-    console.log("🧪 Stored Refresh Token:", refresh);
-    console.log("🧪 Stored Access Token:", access);
+    console.log(" Stored Refresh Token:", refresh);
+    console.log(" Stored Access Token:", access);
   };
 
   checkStoredTokens();
@@ -27,8 +27,8 @@ useEffect(() => {
   };
 }, []);
 
-  
-  return (
+
+return (
     <SafeAreaView style={styles.container}>
       <AppNavigator />
     </SafeAreaView>
