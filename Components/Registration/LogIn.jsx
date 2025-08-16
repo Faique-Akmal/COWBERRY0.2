@@ -352,9 +352,10 @@ const LoginScreen = ({ navigation }) => {
       await AsyncStorage.setItem('email', data.email);
       await AsyncStorage.setItem('role', data.role);
       await AsyncStorage.setItem('employee_code', data.employee_code);
+    
 
       if (data.is_employee_code_verified) {
-        Alert.alert('Success', data.message || 'Login Successful');
+        // Alert.alert('Success', data.message || 'Login Successful');
         navigation.replace('DrawerScreen');
       } else {
         navigation.navigate('OTPVerificationScreen', {
