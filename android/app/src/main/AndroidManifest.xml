@@ -12,6 +12,16 @@
    <!-- Background location (app closed / minimized hone par tracking) -->
    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 
+   <!-- Contact permission  -->
+   <uses-permission android:name="android.permission.READ_CONTACTS" />
+   <uses-permission android:name="android.permission.WRITE_CONTACTS" />
+
+   <!-- Storage  -->
+   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+   <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
+
 
 
     <application

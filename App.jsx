@@ -6,6 +6,7 @@ import AppNavigator from './Components/Navigation/AppNavigator'
 import { useEffect } from 'react';
 import { startTokenRefreshInterval } from './Components/TokenHandling/tokenRefresher';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import StartTask from './Components/Task/StartTask';
 
 
 const App = () => {
@@ -30,7 +31,7 @@ useEffect(() => {
 
 return (
     <SafeAreaView style={styles.container}>
-      <AppNavigator />
+      <StartTask />
     </SafeAreaView>
   )
 }

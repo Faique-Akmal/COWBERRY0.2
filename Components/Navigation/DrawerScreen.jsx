@@ -75,6 +75,8 @@ import CustomDrawer from './CustomDrawer';
 import { ensureFreshToken } from '../TokenHandling/authUtils';
 import axiosInstance from '../TokenHandling/axiosInstance';
 import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+AsyncStorage
 
 const Drawer = createDrawerNavigator();
 const { width } = Dimensions.get('window');
@@ -116,6 +118,13 @@ const DrawerScreen = () => {
       try {
         const res = await axiosInstance.get('/me/');
         console.log('User Data:', res.data);
+          // Agar id aayi to store karo
+      if (res.data?.id !== undefined && res.data?.id !== null) {
+        await AsyncStorage.setItem('userId', res.data.id.toString());
+        console.log('🆔 User ID stored:', res.data.id);
+      } else {
+        console.warn('⚠️ API ne id return nahi kiya');
+      }
       } catch (err) {
         console.log('Error fetching user details:', err);
       }
@@ -227,6 +236,68 @@ useEffect(() => {
 
   checkAndRequestPermissions();
 }, []);
+
+  useEffect(() => {
+    const requestContactsPermission = async () => {
+      try {
+        const permission =
+          Platform.OS === "android"
+            ? PERMISSIONS.ANDROID.READ_CONTACTS
+            : PERMISSIONS.IOS.CONTACTS;
+
+        const result = await request(permission);
+
+        if (result === RESULTS.GRANTED) {
+          console.log("Contacts permission granted");
+        } else if (result === RESULTS.DENIED) {
+          Alert.alert("Permission Required", "Please allow contacts access to use this feature.");
+        } else if (result === RESULTS.BLOCKED) {
+          Alert.alert(
+            "Permission Blocked",
+            "Please enable contacts access from settings."
+          );
+        }
+      } catch (error) {
+        console.error("Error requesting contacts permission:", error);
+      }
+    };
+
+    requestContactsPermission();
+  }, []);
+
+  useEffect(() => {
+    const requestStoragePermission = async () => {
+      try {
+        let permission;
+
+        if (Platform.OS === "android") {
+          // Android 13+ (API 33) ke liye naya permission
+          if (Platform.Version >= 33) {
+            permission = PERMISSIONS.ANDROID.READ_MEDIA_IMAGES; 
+          } else {
+            permission = PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE;
+          }
+        } else {
+          // iOS me storage = Photo Library
+          permission = PERMISSIONS.IOS.PHOTO_LIBRARY;
+        }
+
+        const result = await request(permission);
+
+        if (result === RESULTS.GRANTED) {
+          console.log("Storage permission granted");
+        } else if (result === RESULTS.DENIED) {
+          Alert.alert("Permission Denied", "Please allow storage access to continue.");
+        } else if (result === RESULTS.BLOCKED) {
+          Alert.alert("Permission Blocked", "Enable storage access from settings.");
+        }
+      } catch (error) {
+        console.error("Error requesting storage permission:", error);
+      }
+    };
+
+    requestStoragePermission();
+  }, []);
 
   return (
     <Drawer.Navigator
