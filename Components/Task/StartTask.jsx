@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, Alert, ScrollView, Platform } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, Alert, ScrollView, Platform, Linking } from "react-native";
 import * as ImagePicker from "react-native-image-picker";
 import Geolocation from "react-native-geolocation-service";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -61,6 +61,53 @@ export default function StartTask() {
       }
     });
   };
+
+  // 👇 ye helper bana lo
+const checkLocationPermission = async () => {
+  const permission =
+    Platform.OS === "android"
+      ? PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION
+      : PERMISSIONS.IOS.LOCATION_WHEN_IN_USE;
+
+  const result = await check(permission);
+
+  if (result === RESULTS.GRANTED) {
+    return true;
+  } else if (result === RESULTS.DENIED) {
+    const req = await request(permission);
+    return req === RESULTS.GRANTED;
+  } else if (result === RESULTS.BLOCKED) {
+    Alert.alert(
+      "Permission Required",
+      "Please enable location permission from Settings",
+      [{ text: "Open Settings", onPress: () => openSettings() }]
+    );
+    return false;
+  }
+  return false;
+};
+const onPressStartAttendance = async () => {
+  const hasPermission = await checkLocationPermission();
+
+  if (!hasPermission) return; // agar permission nahi mili to API run hi na ho
+
+  // ✅ agar permission mil gayi, tabhi location fetch karo
+  Geolocation.getCurrentPosition(
+    async (pos) => {
+      setStartLat(pos.coords.latitude.toString());
+      setStartLng(pos.coords.longitude.toString());
+
+      // location mil gayi to ab API call karo
+      await handleSubmit();
+    },
+    (err) => {
+      console.log("Location Error:", err.message);
+      Alert.alert("Location Error", err.message);
+    },
+    { enableHighAccuracy: true, timeout: 15000 }
+  );
+};
+
 
   const handleSubmit = async () => {
     console.log("🚀 Submitting data...");
@@ -131,9 +178,23 @@ export default function StartTask() {
         multiline
       />
 
-      <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
+      <TouchableOpacity style={styles.submitBtn} onPress={onPressStartAttendance}>
         <Text style={styles.submitText}>Start Attendance</Text>
       </TouchableOpacity>
+
+
+      {startLat && startLng ? (
+  <TouchableOpacity
+    style={styles.mapLinkBtn}
+    onPress={() =>
+      Linking.openURL(`https://www.google.com/maps?q=${startLat},${startLng}`)
+    }
+  >
+    <Text style={styles.mapLinkText}>
+      📍 View Location on Google Maps
+    </Text>
+  </TouchableOpacity>
+) : null}
     </ScrollView>
   );
 }
@@ -166,4 +227,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   submitText: { color: "#fff", fontWeight: "700", fontSize: 16 },
+  mapLinkBtn: {
+  marginTop: 15,
+  padding: 12,
+  backgroundColor: "#4880FF",
+  borderRadius: 8,
+  alignItems: "center",
+},
+mapLinkText: {
+  color: "#fff",
+  fontWeight: "600",
+  fontSize: 15,
+},
+
 });
