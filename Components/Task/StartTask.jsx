@@ -5,8 +5,9 @@ import Geolocation from "react-native-geolocation-service";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axiosInstance from "../TokenHandling/axiosInstance";
 import { check, request, PERMISSIONS, RESULTS, openSettings } from "react-native-permissions";
+import Icon from "react-native-vector-icons/FontAwesome5";
 
-export default function StartTask() {
+export default function StartTask({navigation}) {
   const [odometerImage, setOdometerImage] = useState(null);
   const [selfieImage, setSelfieImage] = useState(null);
   const [startLat, setStartLat] = useState("");
@@ -63,55 +64,55 @@ export default function StartTask() {
   };
 
   // 👇 ye helper bana lo
-const checkLocationPermission = async () => {
-  const permission =
-    Platform.OS === "android"
-      ? PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION
-      : PERMISSIONS.IOS.LOCATION_WHEN_IN_USE;
+  const checkLocationPermission = async () => {
+    const permission =
+      Platform.OS === "android"
+        ? PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION
+        : PERMISSIONS.IOS.LOCATION_WHEN_IN_USE;
 
-  const result = await check(permission);
+    const result = await check(permission);
 
-  if (result === RESULTS.GRANTED) {
-    return true;
-  } else if (result === RESULTS.DENIED) {
-    const req = await request(permission);
-    return req === RESULTS.GRANTED;
-  } else if (result === RESULTS.BLOCKED) {
-    Alert.alert(
-      "Permission Required",
-      "Please enable location permission from Settings",
-      [{ text: "Open Settings", onPress: () => openSettings() }]
-    );
+    if (result === RESULTS.GRANTED) {
+      return true;
+    } else if (result === RESULTS.DENIED) {
+      const req = await request(permission);
+      return req === RESULTS.GRANTED;
+    } else if (result === RESULTS.BLOCKED) {
+      Alert.alert(
+        "Permission Required",
+        "Please enable location permission from Settings",
+        [{ text: "Open Settings", onPress: () => openSettings() }]
+      );
+      return false;
+    }
     return false;
-  }
-  return false;
-};
-const onPressStartAttendance = async () => {
-  const hasPermission = await checkLocationPermission();
+  };
+  const onPressStartAttendance = async () => {
+    const hasPermission = await checkLocationPermission();
 
-  if (!hasPermission) return; // agar permission nahi mili to API run hi na ho
+    if (!hasPermission) return; // agar permission nahi mili to API run hi na ho
 
-  // ✅ agar permission mil gayi, tabhi location fetch karo
-  Geolocation.getCurrentPosition(
-    async (pos) => {
-      setStartLat(pos.coords.latitude.toString());
-      setStartLng(pos.coords.longitude.toString());
+    // ✅ agar permission mil gayi, tabhi location fetch karo
+    Geolocation.getCurrentPosition(
+      async (pos) => {
+        setStartLat(pos.coords.latitude.toString());
+        setStartLng(pos.coords.longitude.toString());
 
-      // location mil gayi to ab API call karo
-      await handleSubmit();
-    },
-    (err) => {
-      console.log("Location Error:", err.message);
-      Alert.alert("Location Error", err.message);
-    },
-    { enableHighAccuracy: true, timeout: 15000 }
-  );
-};
+        // location mil gayi to ab API call karo
+        await handleSubmit();
+      },
+      (err) => {
+        console.log("Location Error:", err.message);
+        Alert.alert("Location Error", err.message);
+      },
+      { enableHighAccuracy: true, timeout: 15000 }
+    );
+  };
 
 
   const handleSubmit = async () => {
-    console.log("🚀 Submitting data...");
-    console.log("🛠 Current state values:", {
+    console.log("Submitting data...");
+    console.log("Current state values:", {
       odometerImage,
       selfieImage,
       startLat,
@@ -139,11 +140,11 @@ const onPressStartAttendance = async () => {
       });
       console.log("API Response:", res.data);
       Alert.alert("Success", "Attendance started successfully!");
-       setOdometerImage(null);
-       setSelfieImage(null);
-       setStartLat("");
-       setStartLng("");
-       setDescription("");
+      setOdometerImage(null);
+      setSelfieImage(null);
+      setStartLat("");
+      setStartLng("");
+      setDescription("");
     } catch (err) {
       console.log("API Error:", err.response?.data || err.message);
       Alert.alert("Error", "Failed to start attendance.");
@@ -152,25 +153,51 @@ const onPressStartAttendance = async () => {
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.label}>Odometer Image *</Text>
+
+      <TouchableOpacity
+       onPress={() => navigation.goBack()}
+      >
+        <Text>go back</Text>
+      </TouchableOpacity>
+
+      <Text style={styles.label}>
+        Odometer Image{" "}
+        <Icon name="asterisk" size={10} color="red" /> {/* Asterisk Icon */}
+      </Text>
       {odometerImage && <Image source={{ uri: odometerImage.uri }} style={styles.preview} />}
       <TouchableOpacity style={styles.button} onPress={() => pickImage(setOdometerImage)}>
         <Text style={styles.buttonText}>Pick Odometer Photo</Text>
       </TouchableOpacity>
 
-      <Text style={styles.label}>Selfie Image *</Text>
+      {/* Selfie Image */}
+      <Text style={styles.label}>
+        Selfie Image{" "}
+        <Icon name="asterisk" size={10} color="red" />
+      </Text>
       {selfieImage && <Image source={{ uri: selfieImage.uri }} style={styles.preview} />}
       <TouchableOpacity style={styles.button} onPress={() => pickImage(setSelfieImage)}>
         <Text style={styles.buttonText}>Pick Selfie</Text>
       </TouchableOpacity>
 
-      <Text style={styles.label}>Start Latitude *</Text>
+      {/* Start Latitude */}
+      <Text style={styles.label}>
+        Start Latitude{" "}
+        <Icon name="asterisk" size={10} color="red" />
+      </Text>
       <TextInput style={styles.input} value={startLat} onChangeText={setStartLat} editable={false} />
 
-      <Text style={styles.label}>Start Longitude *</Text>
+      {/* Start Longitude */}
+      <Text style={styles.label}>
+        Start Longitude{" "}
+        <Icon name="asterisk" size={10} color="red" />
+      </Text>
       <TextInput style={styles.input} value={startLng} onChangeText={setStartLng} editable={false} />
 
-      <Text style={styles.label}>Description *</Text>
+      {/* Description */}
+      <Text style={styles.label}>
+        Description{" "}
+        <Icon name="asterisk" size={10} color="red" />
+      </Text>
       <TextInput
         style={[styles.input, { height: 80 }]}
         value={description}
@@ -184,17 +211,17 @@ const onPressStartAttendance = async () => {
 
 
       {startLat && startLng ? (
-  <TouchableOpacity
-    style={styles.mapLinkBtn}
-    onPress={() =>
-      Linking.openURL(`https://www.google.com/maps?q=${startLat},${startLng}`)
-    }
-  >
-    <Text style={styles.mapLinkText}>
-      📍 View Location on Google Maps
-    </Text>
-  </TouchableOpacity>
-) : null}
+        <TouchableOpacity
+          style={styles.mapLinkBtn}
+          onPress={() =>
+            Linking.openURL(`https://www.google.com/maps?q=${startLat},${startLng}`)
+          }
+        >
+          <Text style={styles.mapLinkText}>
+            📍 View Location on Google Maps
+          </Text>
+        </TouchableOpacity>
+      ) : null}
     </ScrollView>
   );
 }
@@ -228,16 +255,16 @@ const styles = StyleSheet.create({
   },
   submitText: { color: "#fff", fontWeight: "700", fontSize: 16 },
   mapLinkBtn: {
-  marginTop: 15,
-  padding: 12,
-  backgroundColor: "#4880FF",
-  borderRadius: 8,
-  alignItems: "center",
-},
-mapLinkText: {
-  color: "#fff",
-  fontWeight: "600",
-  fontSize: 15,
-},
+    marginTop: 15,
+    padding: 12,
+    backgroundColor: "#4880FF",
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  mapLinkText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 15,
+  },
 
 });

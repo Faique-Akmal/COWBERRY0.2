@@ -17,14 +17,14 @@ const Home = ({ navigation }) => {
       <View style={styles.overlay}>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => console.log('Start Task pressed')}
+          onPress={() => navigation.navigate('StartTask')}
         >
           <Text style={styles.buttonText}>Start Attendance Task</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.button, styles.endButton]}
-          onPress={() => console.log('End Task pressed')}
+          onPress={() => navigation.navigate('EndTask')}
         >
           <Text style={styles.buttonText}>End Attendance Task</Text>
         </TouchableOpacity>

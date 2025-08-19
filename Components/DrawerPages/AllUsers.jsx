@@ -1212,7 +1212,7 @@ import {
 import DropDownPicker from "react-native-dropdown-picker";
 import axiosInstance from "../TokenHandling/axiosInstance";
 
-export default function AllUser() {
+export default function AllUser({navigation}) {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [search, setSearch] = useState("");
@@ -1317,6 +1317,13 @@ export default function AllUser() {
 
   const ListHeader = () => (
     <View style={styles.headerContainer}>
+
+         <TouchableOpacity
+              onPress={() => navigation.goBack()}
+            >
+              <Text>go back</Text>
+            </TouchableOpacity>
+
       {fetchError ? <Text style={styles.errorText}>{fetchError}</Text> : null}
 
       <TextInput
