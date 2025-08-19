@@ -6,8 +6,9 @@ import Geolocation from "react-native-geolocation-service";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axiosInstance from "../TokenHandling/axiosInstance";
 import { check, request, PERMISSIONS, RESULTS, openSettings } from "react-native-permissions";
+import Icon from "react-native-vector-icons/FontAwesome5";
 
-export default function EndTask() {
+export default function EndTask({ navigation }) {
   const [odometerImage, setOdometerImage] = useState(null);
   const [selfieImage, setSelfieImage] = useState(null);
   const [endLat, setEndLat] = useState("");
@@ -111,33 +112,54 @@ export default function EndTask() {
       setEndLng("");
       setDescription("");
     } catch (err) {
-         console.log("Error:", err.response?.status, err.response?.data || err.message);
-         console.log({ odometerImage, selfieImage, endLat, endLng, description, userId });
+      console.log("Error:", err.response?.status, err.response?.data || err.message);
+      console.log({ odometerImage, selfieImage, endLat, endLng, description, userId });
       Alert.alert("Error", "Failed to end attendance.");
     }
   };
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.label}>Odometer Image *</Text>
+
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+      >
+        <Text>go back</Text>
+      </TouchableOpacity>
+
+      <Text style={styles.label}>
+        Odometer Image <Icon name="asterisk" size={10} color="red" />
+      </Text>
       {odometerImage && <Image source={{ uri: odometerImage.uri }} style={styles.preview} />}
       <TouchableOpacity style={styles.button} onPress={() => pickImage(setOdometerImage)}>
         <Text style={styles.buttonText}>Pick Odometer Photo</Text>
       </TouchableOpacity>
 
-      <Text style={styles.label}>Selfie Image *</Text>
+      {/* Selfie Image */}
+      <Text style={styles.label}>
+        Selfie Image <Icon name="asterisk" size={10} color="red" />
+      </Text>
       {selfieImage && <Image source={{ uri: selfieImage.uri }} style={styles.preview} />}
       <TouchableOpacity style={styles.button} onPress={() => pickImage(setSelfieImage)}>
         <Text style={styles.buttonText}>Pick Selfie</Text>
       </TouchableOpacity>
 
-      <Text style={styles.label}>End Latitude *</Text>
+      {/* End Latitude */}
+      <Text style={styles.label}>
+        End Latitude <Icon name="asterisk" size={10} color="red" />
+      </Text>
       <TextInput style={styles.input} value={endLat} onChangeText={setEndLat} editable={false} />
 
-      <Text style={styles.label}>End Longitude *</Text>
+      {/* End Longitude */}
+      <Text style={styles.label}>
+        End Longitude <Icon name="asterisk" size={10} color="red" />
+      </Text>
       <TextInput style={styles.input} value={endLng} onChangeText={setEndLng} editable={false} />
 
-      <Text style={styles.label}>Description *</Text>
+      {/* Description */}
+      <Text style={styles.label}>
+        Description <Icon name="asterisk" size={10} color="red" />
+      </Text>
       <TextInput
         style={[styles.input, { height: 80 }]}
         value={description}
@@ -192,16 +214,16 @@ const styles = StyleSheet.create({
   },
   submitText: { color: "#fff", fontWeight: "700", fontSize: 16 },
   mapLinkBtn: {
-  marginTop: 15,
-  padding: 12,
-  backgroundColor: "#4880FF",
-  borderRadius: 8,
-  alignItems: "center",
-},
-mapLinkText: {
-  color: "#fff",
-  fontWeight: "600",
-  fontSize: 15,
-},
+    marginTop: 15,
+    padding: 12,
+    backgroundColor: "#4880FF",
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  mapLinkText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 15,
+  },
 
 });

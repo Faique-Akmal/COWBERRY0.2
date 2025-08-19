@@ -103,7 +103,7 @@ const CustomDrawer = (props) => {
 
           <TouchableOpacity
             style={[styles.customButton]}
-            onPress={() => console.log('Notifications pressed')}>
+            onPress={() => navigation.navigate('Calender')}>
             <MaterialIcons name="calendar-month" size={20} color="#ffe3afff" />
             <Text style={styles.newButtonText}>Calender</Text>
           </TouchableOpacity>
@@ -138,9 +138,9 @@ const CustomDrawer = (props) => {
 
           <TouchableOpacity
             style={[styles.customButton]}
-            onPress={() => console.log('Support pressed')}>
+            onPress={() => navigation.navigate('MyTask')}>
             <FontAwesome5 name="tasks" size={20} color="#ffe3afff" />
-            <Text style={styles.newButtonText}>Task Manager</Text>
+            <Text style={styles.newButtonText}>My Task</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
