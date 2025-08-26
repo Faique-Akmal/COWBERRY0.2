@@ -14,6 +14,10 @@ import MyTask from '../DrawerPages/MyTask';
 import UpdateStartTask from '../DrawerPages/UpdateStartTask';
 import StartTask from '../Task/StartTask';
 import EndTask from '../Task/EndTask';
+import Attendance from '../DrawerPages/Attendance';
+import UpdateProfile from '../DrawerPages/UpdateProfile';
+import SocketChatBox from '../Chats/screens/SocketChatBox';
+import { ChatListScreen, ChatScreen } from '../Chats';
 
 
 const Stack = createNativeStackNavigator();
@@ -69,6 +73,11 @@ const AppNavigator = () => {
           options={{ headerShown: false }} 
           />
           <Stack.Screen 
+         name="Attendance"
+          component={Attendance} 
+          options={{ headerShown: false }} 
+          />
+          <Stack.Screen 
          name="Calender"
           component={Calender} 
           options={{ headerShown: false }} 
@@ -87,6 +96,27 @@ const AppNavigator = () => {
          name="UpdateStartTask"
           component={UpdateStartTask} 
           options={{ headerShown: false }} 
+          />
+          <Stack.Screen 
+         name="UpdateProfile"
+          component={UpdateProfile} 
+          options={{ headerShown: false }} 
+          />
+          {/* Chats Screen */}
+          {/* <Stack.Screen 
+          name="ChatList" 
+          component={ChatListScreen} 
+          options={{ title: 'Chats' }} 
+          />
+        <Stack.Screen 
+        name="ChatScreen" 
+        component={ChatScreen} 
+        options={{ title: 'Chat' }} 
+        /> */}
+   <Stack.Screen 
+          name="SocketChatBox" 
+          component={SocketChatBox} 
+          options={{ title: 'SocketChatBox' }} 
           />
 
 
