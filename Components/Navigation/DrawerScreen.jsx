@@ -101,10 +101,12 @@ const DrawerLeftHeader = () => {
           style={{ width: 24, height: 24 }}
         />
       </TouchableOpacity>
+      <TouchableOpacity onPress={() => navigation.navigate('BottomScreen', { screen: 'Home' })}>
       <Image
         source={require('../images/cowberryLogo.png')}
         style={{ width: 120, height: 50, resizeMode: 'contain' }}
       />
+     </TouchableOpacity>
       <View style={{ width: 24 }} />
     </View>
   );

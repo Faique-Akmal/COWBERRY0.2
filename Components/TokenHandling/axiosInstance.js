@@ -80,7 +80,7 @@ axiosInstance.interceptors.request.use(
         const now = Date.now() / 1000;
 
         if (decoded.exp < now && refreshToken) {
-          console.log('♻️ Access token expired — refreshing before request...');
+          console.log(' Access token expired — refreshing before request...');
           try {
             const res = await axios.post(`${API_URL}/token/refresh/`, {
               refresh: refreshToken,
@@ -88,14 +88,14 @@ axiosInstance.interceptors.request.use(
             token = res.data.access;
             await AsyncStorage.setItem('accessToken', token);
           } catch (err) {
-            console.log('❌ Token refresh failed before request', err);
+            console.log(' Token refresh failed before request', err);
           }
         }
 
         config.headers.Authorization = `Bearer ${token}`;
       }
     } catch (error) {
-      console.log('❌ Token fetch error:', error);
+      console.log(' Token fetch error:', error);
     }
     return config;
   },
