@@ -159,11 +159,10 @@ export const useSocketStore = create((set, get) => ({
       return;
     }
 
-    const socketUrl = `wss://${WS_URL}/ws/chat/${
-      chatInfo.chatType === "group"
-        ? chatInfo.chatId
-        : `personal/${chatInfo.chatId}`
-    }/?token=${token}`;
+    const socketUrl = `wss://${WS_URL}/ws/chat/${chatInfo.chatType === "group"
+      ? chatInfo.chatId
+      : `personal/${chatInfo.chatId}`
+      }/?token=${token}`;
 
     console.log("🔌 Connecting to:", socketUrl);
 
@@ -190,12 +189,21 @@ export const useSocketStore = create((set, get) => ({
         case "chat_message":
           addMessage(`${chatInfo.chatId}-${chatInfo.chatType}`, data);
           break;
+          
         case "edit_message":
           editMessage(
             `${chatInfo.chatId}-${chatInfo.chatType}`,
-            data?.id,
-            { content: data?.content, is_edited: data?.is_edited }
+            {
+              id: data.id,
+              content: data.content,
+              is_edited: data.is_edited,
+              sender: data.sender,
+              sender_username: data.sender_username,
+              sent_at: data.sent_at,
+            }
           );
+
+
           break;
         case "delete_message":
           deleteMessage(`${chatInfo.chatId}-${chatInfo.chatType}`, data?.id);
