@@ -55,7 +55,7 @@ export default function SocketChatBox(route) {
           onPress={() => navigation.goBack()}
           style={{ marginLeft: 10 }}
         >
-          <Text style={{ color: "blue" }}>Back</Text>
+          <Text style={{ color: "#000" }}>Back</Text>
         </TouchableOpacity>
       );
     },

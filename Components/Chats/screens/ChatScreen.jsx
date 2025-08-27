@@ -245,7 +245,11 @@ export default function ChatScreen({ route }) {
   const [myUserId, setMyUserId] = useState(null);
 
   const chatKey = `${chatInfo.chatId}-${chatInfo.chatType}`;
-  const messages = messagesByChatId[chatKey] || [];
+  
+  const messages = useMessageStore(
+  (state) => state.messagesByChatId[chatKey] || []
+);
+
 
 useEffect(() => {
     // Get userId from AsyncStorage
