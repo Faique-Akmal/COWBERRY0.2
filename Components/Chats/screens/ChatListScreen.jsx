@@ -37,6 +37,7 @@ const ChatListScreen = () => {
     fetchData();
   }, []);
 
+  // ThreeDot Option
   const showGroupOptions = () => {
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
@@ -81,9 +82,16 @@ const ChatListScreen = () => {
             chatId: item.id,
             chatType: "personal",
             chatName: item.username,
+            members: [
+        { id: currentUserId, username: "You" },   
+        { id: item.id, username: item.username }, 
+      ],
           },
+          
+          
         })
       }
+
       style={{ flexDirection: "row", alignItems: "center", padding: 12, borderBottomWidth: 1, borderColor: "#ddd" }}
     >
       <Image
@@ -116,9 +124,11 @@ const ChatListScreen = () => {
             chatId: item.group_id,
             chatType: "group",
             chatName: item.group_name,
+            members: item.members, // ✅ members bhej diye
           },
         })
       }
+
       style={{ flexDirection: "row", alignItems: "center", padding: 12, borderBottomWidth: 1, borderColor: "#ddd" }}
     >
       <Image
