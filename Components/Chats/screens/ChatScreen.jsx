@@ -13,6 +13,8 @@
 // import { useMessageStore } from "../stores/messageStore";
 // import { useSocketStore } from "../stores/socketStore";
 // import axiosInstance from "../../TokenHandling/axiosInstance";
+// import TypingIndicator from "../components/TypingIndicator"; 
+// import ChatBubble from "../components/ChatBubble";
 
 // export default function ChatScreen({ route }) {
 //   const { chatInfo } = route.params;
@@ -23,9 +25,11 @@
 //   const [replyTo, setReplyTo] = useState(null);
 //   const flatListRef = useRef(null);
 //   const [myUserId, setMyUserId] = useState(null);
+//   const [editingMsg, setEditingMsg] = useState(null);
 
 //   const chatKey = `${chatInfo.chatId}-${chatInfo.chatType}`;
 //   const messages = messagesByChatId[chatKey] || [];
+
 
 // useEffect(() => {
 //     // Get userId from AsyncStorage
@@ -60,6 +64,7 @@
 //   useEffect(() => {
 //     flatListRef.current?.scrollToEnd({ animated: true });
 //   }, [messages]);
+  
 
 //   const handleTyping = useCallback(() => {
 //     sendJson({
@@ -84,31 +89,38 @@
 //     setReplyTo(null);
 //   }, [input, chatInfo, replyTo]);
 
+  
+
 //   // 🎨 Render styled message
+//   // const renderMessage = ({ item }) => {
+//   //   const isMe = item.sender === myUserId;
+//   //   // console.log("💬 Msg Sender:", item.sender, "| MyID:", myUserId);
+//   //   return (
+//   //     <View
+//   //       style={[
+//   //         styles.msgContainer,
+//   //         { alignSelf: isMe ? "flex-end" : "flex-start" },
+//   //       ]}
+//   //     >
+//   //       {!isMe && (
+//   //         <Text style={styles.username}>{item.sender_username}</Text>
+//   //       )}
+//   //       <View
+//   //         style={[
+//   //           styles.msgBubble,
+//   //           { backgroundColor: isMe ? "#DCF8C6" : "#FFF" },
+//   //         ]}
+//   //       >
+//   //         <Text style={styles.msgText}>{item.content}</Text>
+//   //       </View>
+//   //     </View>
+//   //   );
+//   // };
+
 //   const renderMessage = ({ item }) => {
-//     const isMe = item.sender === myUserId;
-//     console.log("💬 Msg Sender:", item.sender, "| MyID:", myUserId);
-//     return (
-//       <View
-//         style={[
-//           styles.msgContainer,
-//           { alignSelf: isMe ? "flex-end" : "flex-start" },
-//         ]}
-//       >
-//         {!isMe && (
-//           <Text style={styles.username}>{item.sender_username}</Text>
-//         )}
-//         <View
-//           style={[
-//             styles.msgBubble,
-//             { backgroundColor: isMe ? "#DCF8C6" : "#FFF" },
-//           ]}
-//         >
-//           <Text style={styles.msgText}>{item.content}</Text>
-//         </View>
-//       </View>
-//     );
-//   };
+//   const isMe = item.sender === myUserId;
+//   return <ChatBubble msg={item} isMe={isMe} styles={styles} />;
+// };
 
 //   return (
 //     <ImageBackground
@@ -116,13 +128,8 @@
 //       style={{ flex: 1 }}
 //       resizeMode="cover"
 //     >
-//          {Object.entries(typingStatus || {}).map(([userId, isTyping]) =>
-//         isTyping ? (
-//           <Text key={userId} style={{ padding: 4, fontStyle: "italic", color: "gray" }}>
-//             {userId} is typing...
-//           </Text>
-//         ) : null
-//       )}
+//        {/* 👇 Typing Indicator yaha use karo */}
+//     <TypingIndicator typingUsers={typingStatus} currentUser={myUserId?.toString()} />
 //       <FlatList
 //         ref={flatListRef}
 //         data={messages}
@@ -131,14 +138,14 @@
 //         contentContainerStyle={{ padding: 10 }}
 //       />
 
-//       {replyTo && (
+//       {/* {replyTo && (
 //         <View style={styles.replyBox}>
 //           <Text>Replying to: {replyTo.content}</Text>
 //           <TouchableOpacity onPress={() => setReplyTo(null)}>
 //             <Text style={{ color: "red" }}>Cancel</Text>
 //           </TouchableOpacity>
 //         </View>
-//       )}
+//       )} */}
 
 //       <View style={styles.inputRow}>
 //         <TextInput
@@ -217,6 +224,7 @@
 
 
 
+
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   View,
@@ -233,6 +241,7 @@ import { useMessageStore } from "../stores/messageStore";
 import { useSocketStore } from "../stores/socketStore";
 import axiosInstance from "../../TokenHandling/axiosInstance";
 import TypingIndicator from "../components/TypingIndicator"; 
+import ChatBubble from "../components/ChatBubble";
 
 export default function ChatScreen({ route }) {
   const { chatInfo } = route.params;
@@ -243,9 +252,11 @@ export default function ChatScreen({ route }) {
   const [replyTo, setReplyTo] = useState(null);
   const flatListRef = useRef(null);
   const [myUserId, setMyUserId] = useState(null);
+  const [editingMsg, setEditingMsg] = useState(null);
 
   const chatKey = `${chatInfo.chatId}-${chatInfo.chatType}`;
   const messages = messagesByChatId[chatKey] || [];
+
 
 useEffect(() => {
     // Get userId from AsyncStorage
@@ -280,6 +291,7 @@ useEffect(() => {
   useEffect(() => {
     flatListRef.current?.scrollToEnd({ animated: true });
   }, [messages]);
+  
 
   const handleTyping = useCallback(() => {
     sendJson({
@@ -304,38 +316,53 @@ useEffect(() => {
     setReplyTo(null);
   }, [input, chatInfo, replyTo]);
 
+  
+
+  
+
   // 🎨 Render styled message
+  // const renderMessage = ({ item }) => {
+  //   const isMe = item.sender === myUserId;
+  //   // console.log("💬 Msg Sender:", item.sender, "| MyID:", myUserId);
+  //   return (
+  //     <View
+  //       style={[
+  //         styles.msgContainer,
+  //         { alignSelf: isMe ? "flex-end" : "flex-start" },
+  //       ]}
+  //     >
+  //       {!isMe && (
+  //         <Text style={styles.username}>{item.sender_username}</Text>
+  //       )}
+  //       <View
+  //         style={[
+  //           styles.msgBubble,
+  //           { backgroundColor: isMe ? "#DCF8C6" : "#FFF" },
+  //         ]}
+  //       >
+  //         <Text style={styles.msgText}>{item.content}</Text>
+  //       </View>
+  //     </View>
+  //   );
+  // };
+
   const renderMessage = ({ item }) => {
-    const isMe = item.sender === myUserId;
-    // console.log("💬 Msg Sender:", item.sender, "| MyID:", myUserId);
-    return (
-      <View
-        style={[
-          styles.msgContainer,
-          { alignSelf: isMe ? "flex-end" : "flex-start" },
-        ]}
-      >
-        {!isMe && (
-          <Text style={styles.username}>{item.sender_username}</Text>
-        )}
-        <View
-          style={[
-            styles.msgBubble,
-            { backgroundColor: isMe ? "#DCF8C6" : "#FFF" },
-          ]}
-        >
-          <Text style={styles.msgText}>{item.content}</Text>
-        </View>
-      </View>
-    );
-  };
+  const isMe = item.sender === myUserId;
+  return <ChatBubble msg={item} isMe={isMe} styles={styles} />;
+};
 
   return (
     <ImageBackground
-      source={require("../../images/123.png")} // 👈 apna image yaha daalo
+      source={require("../../images/123.png")} 
       style={{ flex: 1 }}
       resizeMode="cover"
     >
+      <View
+    style={{
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: "rgba(0,0,0,0.1)", 
+    }}
+  />
        {/* 👇 Typing Indicator yaha use karo */}
     <TypingIndicator typingUsers={typingStatus} currentUser={myUserId?.toString()} />
       <FlatList

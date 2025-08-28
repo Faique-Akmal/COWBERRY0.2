@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, TouchableOpacity, Image, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, Image, ActivityIndicator, ActionSheetIOS, Platform, Alert } from "react-native";
 import axiosInstance from "../../TokenHandling/axiosInstance";
 import { axiosGetAllGroup } from "../stores/ChatStore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
+import Ionicons from "react-native-vector-icons/Ionicons";
 
 const ChatListScreen = () => {
   const [users, setUsers] = useState([]);
@@ -36,19 +37,55 @@ const ChatListScreen = () => {
     fetchData();
   }, []);
 
+  const showGroupOptions = () => {
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ["Cancel", "Create Group", "Group Settings"],
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            // console.log("Create Group clicked");
+            navigation.navigate("CreateGroup");
+          } else if (buttonIndex === 3) {
+            console.log("Group Settings clicked");
+          }
+        }
+      );
+    } else {
+      Alert.alert("Group Options", "Choose an action", [
+        { text: "Cancel", style: "cancel" },
+
+        {
+          text: "Create Group",
+          onPress: () => {
+            console.log("hello");
+            navigation.navigate("CreateGroup");
+          }
+        },
+
+
+
+        { text: "Group Settings", onPress: () => console.log("Group Settings clicked") },
+      ]);
+    }
+  };
+
+
   const renderUserItem = ({ item }) => (
-   <TouchableOpacity
-  onPress={() =>
-    navigation.navigate("ChatScreen", {
-      chatInfo: {
-        chatId: item.id,
-        chatType: "personal",
-        chatName: item.username,
-      },
-    })
-  }
-  style={{ flexDirection: "row", alignItems: "center", padding: 12, borderBottomWidth: 1, borderColor: "#ddd" }}
->
+    <TouchableOpacity
+      onPress={() =>
+        navigation.navigate("ChatScreen", {
+          chatInfo: {
+            chatId: item.id,
+            chatType: "personal",
+            chatName: item.username,
+          },
+        })
+      }
+      style={{ flexDirection: "row", alignItems: "center", padding: 12, borderBottomWidth: 1, borderColor: "#ddd" }}
+    >
       <Image
         source={{
           uri: item.profile_image || "https://cdn-icons-png.flaticon.com/512/149/149071.png",
@@ -72,18 +109,18 @@ const ChatListScreen = () => {
   );
 
   const renderGroupItem = ({ item }) => (
-   <TouchableOpacity
-  onPress={() =>
-    navigation.navigate("ChatScreen", {
-      chatInfo: {
-        chatId: item.group_id,
-        chatType: "group",
-        chatName: item.group_name,
-      },
-    })
-  }
-  style={{ flexDirection: "row", alignItems: "center", padding: 12, borderBottomWidth: 1, borderColor: "#ddd" }}
->
+    <TouchableOpacity
+      onPress={() =>
+        navigation.navigate("ChatScreen", {
+          chatInfo: {
+            chatId: item.group_id,
+            chatType: "group",
+            chatName: item.group_name,
+          },
+        })
+      }
+      style={{ flexDirection: "row", alignItems: "center", padding: 12, borderBottomWidth: 1, borderColor: "#ddd" }}
+    >
       <Image
         source={{ uri: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSpkmUS8gXwKRgILf96UVC8zFVSoj9JurVIu2ag3kuXqADz2wCjBZXVrwWYjrmxkhTjOec&usqp=CAU" }}
         style={{ width: 40, height: 40, borderRadius: 20, marginRight: 12 }}
@@ -107,7 +144,13 @@ const ChatListScreen = () => {
     <FlatList
       ListHeaderComponent={
         <>
-          <Text style={{ fontSize: 18, fontWeight: "bold", margin: 10 }}>Groups</Text>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", margin: 10 }}>
+            <Text style={{ fontSize: 18, fontWeight: "bold" }}>Groups</Text>
+            <TouchableOpacity onPress={showGroupOptions}>
+              <Ionicons name="ellipsis-vertical" size={20} color="black" />
+            </TouchableOpacity>
+          </View>
+
           <FlatList
             data={groups}
             renderItem={renderGroupItem}
