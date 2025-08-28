@@ -3,7 +3,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import ChatListScreen from "./ChatListScreen";
 import ChatScreen from "./ChatScreen";
 import { useNavigation } from "@react-navigation/native";
-import { TouchableOpacity , Text} from "react-native";
+import { TouchableOpacity, Text } from "react-native";
 import { useSocketStore } from "../stores/socketStore";
 import { useMessageStore } from "../stores/messageStore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -37,43 +37,40 @@ export default function SocketChatBox(route) {
     return () => {
       disconnect();
     };
-  }, [chatInfo?.id]); 
+  }, [chatInfo?.id]);
   return (
     <Stack.Navigator>
       {/* Chat List */}
-     
-<Stack.Screen
-  name="ChatList"
-  component={ChatListScreen}
-  options={{
-    headerShown: true,
-    headerTitle: "Chats",
-    headerLeft: () => {
-      const navigation = useNavigation();
-      return (
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={{ marginLeft: 10 }}
-        >
-          <Text style={{ color: "blue" }}>Back</Text>
-        </TouchableOpacity>
-      );
-    },
-  }}
-/>
+
+      <Stack.Screen
+        name="ChatList"
+        component={ChatListScreen}
+        options={{
+          headerShown: true,
+          headerTitle: "Chats",
+          headerLeft: () => {
+            const navigation = useNavigation();
+            return (
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={{ marginLeft: 10 }}
+              >
+                <Text style={{ color: "blue" }}>Back</Text>
+              </TouchableOpacity>
+            );
+          },
+        }}
+      />
 
 
       {/* Chat Screen */}
       <Stack.Screen
         name="ChatScreen"
         component={ChatScreen}
-        options={({ route }) => {
-          const { type, username, groupName } = route.params || {};
-          return {
-            headerTitle: type === "group" ? groupName : username,
-            headerBackTitle: "Back",
-          };
+        options={{
+          headerShown: false,
         }}
+
       />
     </Stack.Navigator>
   );
