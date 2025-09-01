@@ -11,26 +11,26 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const App = () => {
 
-useEffect(() => {
-  const intervalId = startTokenRefreshInterval();
+  useEffect(() => {
+    const intervalId = startTokenRefreshInterval();
 
-  const checkStoredTokens = async () => {
-    const refresh = await AsyncStorage.getItem('refreshToken');
-    const access = await AsyncStorage.getItem('accessToken');
-    console.log(" Stored Refresh Token:", refresh);
-    console.log(" Stored Access Token:", access);
+    const checkStoredTokens = async () => {
+      const refresh = await AsyncStorage.getItem('refreshToken');
+      const access = await AsyncStorage.getItem('accessToken');
+      console.log(" Stored Refresh Token:", refresh);
+      console.log(" Stored Access Token:", access);
 
-  };
+    };
 
-  checkStoredTokens();
+    checkStoredTokens();
 
-  return () => {
-    clearInterval(intervalId);
-  };
-}, []);
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, []);
 
 
-return (
+  return (
     <SafeAreaView style={styles.container}>
       <AppNavigator />
     </SafeAreaView>
@@ -42,5 +42,5 @@ export default App
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-   },
+  },
 })

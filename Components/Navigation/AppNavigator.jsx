@@ -1,5 +1,5 @@
 import React from 'react';
-import {TouchableOpacity, Text} from 'react-native';
+import { TouchableOpacity, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import DrawerScreen from './DrawerScreen';

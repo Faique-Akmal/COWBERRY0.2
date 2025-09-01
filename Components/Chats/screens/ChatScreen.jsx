@@ -65,7 +65,7 @@
 //   useEffect(() => {
 //     flatListRef.current?.scrollToEnd({ animated: true });
 //   }, [messages]);
-  
+
 
 //   const handleTyping = useCallback(() => {
 //     sendJson({
@@ -90,9 +90,9 @@
 //     setReplyTo(null);
 //   }, [input, chatInfo, replyTo]);
 
-  
 
-  
+
+
 
 //   // 🎨 Render styled message
 //   // const renderMessage = ({ item }) => {
@@ -173,7 +173,7 @@
 //         </TouchableOpacity>
 //       </View>
 
-   
+
 //     </ImageBackground>
 //   );
 // }
@@ -182,7 +182,7 @@
 //   msgContainer: {
 //     marginVertical: 6,
 //     maxWidth: "80%",
-    
+
 //   },
 //   username: {
 //     fontSize: 12,
@@ -204,12 +204,12 @@
 //     shadowOpacity: 0.1,
 //     shadowRadius: 2,
 //     elevation: 1,
-    
+
 //   },
 //   msgText: {
 //     fontSize: 16,
 //     color: "#000",
-    
+
 //   },
 //   inputRow: {
 //     flexDirection: "row",
@@ -244,13 +244,14 @@ import {
   Modal,
   ScrollView,
   Image,
+  KeyboardAvoidingView
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useMessageStore } from "../stores/messageStore";
 import { useSocketStore } from "../stores/socketStore";
 import axiosInstance from "../../TokenHandling/axiosInstance";
-import TypingIndicator from "../components/TypingIndicator"; 
+import TypingIndicator from "../components/TypingIndicator";
 import ChatBubble from "../components/ChatBubble";
 import { useNavigation } from "@react-navigation/native";
 
@@ -263,15 +264,15 @@ export default function ChatScreen({ route }) {
   const [input, setInput] = useState("");
   const [replyTo, setReplyTo] = useState(null);
   const [myUserId, setMyUserId] = useState(null);
-  const [showMembers, setShowMembers] = useState(false); 
+  const [showMembers, setShowMembers] = useState(false);
   const flatListRef = useRef(null);
 
   const chatKey = `${chatInfo.chatId}-${chatInfo.chatType}`;
   const messages = messagesByChatId[chatKey] || [];
 
   useEffect(() => {
-  console.log("ChatScreen chatInfo:", chatInfo);
-}, [chatInfo]);
+    console.log("ChatScreen chatInfo:", chatInfo);
+  }, [chatInfo]);
 
 
   useEffect(() => {
@@ -335,22 +336,29 @@ export default function ChatScreen({ route }) {
 
   return (
     <ImageBackground
-      source={require("../../images/123.png")} 
+      source={require("../../images/123.png")}
       style={{ flex: 1 }}
       resizeMode="cover"
     >
       <View
         style={{
           ...StyleSheet.absoluteFillObject,
-          backgroundColor: "rgba(0,0,0,0.1)", 
+          backgroundColor: "rgba(0,0,0,0.1)",
         }}
       />
+
+        {/* ✅ KeyboardAvoidingView Wrap */}
+  <KeyboardAvoidingView
+    style={{ flex: 1 }}
+    behavior={Platform.OS === "ios" ? "padding" : "height"}
+    keyboardVerticalOffset={80} // header ki height jitna offset
+  >
 
       {/* ✅ Custom Header */}
       <View style={styles.header}>
         {/* Back Button */}
         <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 10 }}>
-          <Ionicons name="arrow-back" size={26} color="#333" />
+          <Ionicons name="arrow-back" size={26} color="#377355" />
         </TouchableOpacity>
 
         {/* Chat Name */}
@@ -394,12 +402,13 @@ export default function ChatScreen({ route }) {
           <Ionicons name="send" size={24} color="#377355" />
         </TouchableOpacity>
       </View>
+      </KeyboardAvoidingView>
 
       {/* ✅ Members Modal */}
       <Modal visible={showMembers} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Group Members ({chatInfo.members?.length || 0})</Text>
+            <Text style={styles.modalTitle}>{chatInfo.members?.length || 0} Members</Text>
             <ScrollView>
               {chatInfo.members?.map((m, idx) => (
                 <View key={idx} style={styles.memberRow}>
@@ -464,8 +473,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 8,
     backgroundColor: "#fff",
-    borderTopColor:"#000",
-    borderTopWidth:1
+    borderTopColor: "#000",
+    borderTopWidth: 1
   },
   input: {
     flex: 1,

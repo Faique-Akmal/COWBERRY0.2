@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, Alert, ScrollView, Platform, Linking } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, Alert, ScrollView, Platform, Linking, KeyboardAvoidingView } from "react-native";
 import * as ImagePicker from "react-native-image-picker";
 import Geolocation from "react-native-geolocation-service";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axiosInstance from "../TokenHandling/axiosInstance";
 import { check, request, PERMISSIONS, RESULTS, openSettings } from "react-native-permissions";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { fetchMe, fetchLocationConfig } from "../Task/AttendanceHelpers";
 
-export default function StartTask({navigation}) {
+
+export default function StartTask({ navigation }) {
   const [odometerImage, setOdometerImage] = useState(null);
   const [selfieImage, setSelfieImage] = useState(null);
   const [startLat, setStartLat] = useState("");
@@ -15,14 +17,19 @@ export default function StartTask({navigation}) {
   const [description, setDescription] = useState("");
   const [userId, setUserId] = useState("");
 
+
+  const formatCoordinate = (value) => {
+    return parseFloat(value).toFixed(6); // max 6 decimal places
+  };
+
   // Get location automatically
   useEffect(() => {
     console.log("Fetching location...");
     Geolocation.getCurrentPosition(
       (pos) => {
         console.log("Location fetched:", pos.coords);
-        setStartLat(pos.coords.latitude.toString());
-        setStartLng(pos.coords.longitude.toString());
+        setStartLat(formatCoordinate(pos.coords.latitude));
+        setStartLng(formatCoordinate(pos.coords.longitude));
       },
       (err) => {
         console.log("Location Error:", err.message);
@@ -92,20 +99,33 @@ export default function StartTask({navigation}) {
 
     if (!hasPermission) return; // agar permission nahi mili to API run hi na ho
 
-    // ✅ agar permission mil gayi, tabhi location fetch karo
+    console.log("📍 Fetching fresh location...");
+
     Geolocation.getCurrentPosition(
       async (pos) => {
-        setStartLat(pos.coords.latitude.toString());
-        setStartLng(pos.coords.longitude.toString());
+        if (pos.coords.latitude === 0) {
+          console.log("⚠️ Latitude 0 mila, retrying in 2s...");
+          setTimeout(onPressStartAttendance, 2000); // retry
+          return;
+        }
+
+        console.log("✅ Final Location:", pos.coords);
+
+        setStartLat(formatCoordinate(pos.coords.latitude));
+        setStartLng(formatCoordinate(pos.coords.longitude));
 
         // location mil gayi to ab API call karo
         await handleSubmit();
       },
       (err) => {
-        console.log("Location Error:", err.message);
+        console.log("❌ Location Error:", err.message);
         Alert.alert("Location Error", err.message);
       },
-      { enableHighAccuracy: true, timeout: 15000 }
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0, // ❌ old cached location ignore karo
+      }
     );
   };
 
@@ -139,12 +159,16 @@ export default function StartTask({navigation}) {
         headers: { "Content-Type": "multipart/form-data" },
       });
       console.log("API Response:", res.data);
+      console.log("API chal gai:");
       Alert.alert("Success", "Attendance started successfully!");
       setOdometerImage(null);
       setSelfieImage(null);
       setStartLat("");
       setStartLng("");
       setDescription("");
+      // Location tracking after set time interval
+      await fetchMe();
+      await fetchLocationConfig();
     } catch (err) {
       console.log("API Error:", err.response?.data || err.message);
       Alert.alert("Error", "Failed to start attendance.");
@@ -152,77 +176,86 @@ export default function StartTask({navigation}) {
   };
 
   return (
-    <ScrollView style={styles.container}>
-
-      <TouchableOpacity
-       onPress={() => navigation.goBack()}
-      >
-        <Text>go back</Text>
-      </TouchableOpacity>
-
-      <Text style={styles.label}>
-        Odometer Image{" "}
-        <Icon name="asterisk" size={10} color="red" /> {/* Asterisk Icon */}
-      </Text>
-      {odometerImage && <Image source={{ uri: odometerImage.uri }} style={styles.preview} />}
-      <TouchableOpacity style={styles.button} onPress={() => pickImage(setOdometerImage)}>
-        <Text style={styles.buttonText}>Pick Odometer Photo</Text>
-      </TouchableOpacity>
-
-      {/* Selfie Image */}
-      <Text style={styles.label}>
-        Selfie Image{" "}
-        <Icon name="asterisk" size={10} color="red" />
-      </Text>
-      {selfieImage && <Image source={{ uri: selfieImage.uri }} style={styles.preview} />}
-      <TouchableOpacity style={styles.button} onPress={() => pickImage(setSelfieImage)}>
-        <Text style={styles.buttonText}>Pick Selfie</Text>
-      </TouchableOpacity>
-
-      {/* Start Latitude */}
-      <Text style={styles.label}>
-        Start Latitude{" "}
-        <Icon name="asterisk" size={10} color="red" />
-      </Text>
-      <TextInput style={styles.input} value={startLat} onChangeText={setStartLat} editable={false} />
-
-      {/* Start Longitude */}
-      <Text style={styles.label}>
-        Start Longitude{" "}
-        <Icon name="asterisk" size={10} color="red" />
-      </Text>
-      <TextInput style={styles.input} value={startLng} onChangeText={setStartLng} editable={false} />
-
-      {/* Description */}
-      <Text style={styles.label}>
-        Description{" "}
-        <Icon name="asterisk" size={10} color="red" />
-      </Text>
-      <TextInput
-        style={[styles.input, { height: 80 }]}
-        value={description}
-        onChangeText={setDescription}
-        multiline
-      />
-
-      <TouchableOpacity style={styles.submitBtn} onPress={onPressStartAttendance}>
-        <Text style={styles.submitText}>Start Attendance</Text>
-      </TouchableOpacity>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={80} // header ki height jitna offset
+    >
+      <ScrollView style={styles.container}>
+        {/* ✅ KeyboardAvoidingView Wrap */}
 
 
-      {startLat && startLng ? (
         <TouchableOpacity
-          style={styles.mapLinkBtn}
-          onPress={() =>
-            Linking.openURL(`https://www.google.com/maps?q=${startLat},${startLng}`)
-          }
+          onPress={() => navigation.goBack()}
         >
-          <Text style={styles.mapLinkText}>
-            📍 View Location on Google Maps
-          </Text>
+          <Text>go back</Text>
         </TouchableOpacity>
-      ) : null}
-    </ScrollView>
+
+        <Text style={styles.label}>
+          Odometer Image{" "}
+          <Icon name="asterisk" size={10} color="red" /> {/* Asterisk Icon */}
+        </Text>
+        {odometerImage && <Image source={{ uri: odometerImage.uri }} style={styles.preview} />}
+        <TouchableOpacity style={styles.button} onPress={() => pickImage(setOdometerImage)}>
+          <Text style={styles.buttonText}>Pick Odometer Photo</Text>
+        </TouchableOpacity>
+
+        {/* Selfie Image */}
+        <Text style={styles.label}>
+          Selfie Image{" "}
+          <Icon name="asterisk" size={10} color="red" />
+        </Text>
+        {selfieImage && <Image source={{ uri: selfieImage.uri }} style={styles.preview} />}
+        <TouchableOpacity style={styles.button} onPress={() => pickImage(setSelfieImage)}>
+          <Text style={styles.buttonText}>Pick Selfie</Text>
+        </TouchableOpacity>
+
+        {/* Start Latitude */}
+        <Text style={styles.label}>
+          Start Latitude{" "}
+          <Icon name="asterisk" size={10} color="red" />
+        </Text>
+        <TextInput style={styles.input} value={startLat} onChangeText={setStartLat} editable={false} />
+
+        {/* Start Longitude */}
+        <Text style={styles.label}>
+          Start Longitude{" "}
+          <Icon name="asterisk" size={10} color="red" />
+        </Text>
+        <TextInput style={styles.input} value={startLng} onChangeText={setStartLng} editable={false} />
+
+        {/* Description */}
+        <Text style={styles.label}>
+          Description{" "}
+          <Icon name="asterisk" size={10} color="red" />
+        </Text>
+        <TextInput
+          style={[styles.input, { height: 80 }]}
+          value={description}
+          onChangeText={setDescription}
+          multiline
+        />
+
+        <TouchableOpacity style={styles.submitBtn} onPress={onPressStartAttendance}>
+          <Text style={styles.submitText}>Start Attendance</Text>
+        </TouchableOpacity>
+
+
+        {startLat && startLng ? (
+          <TouchableOpacity
+            style={styles.mapLinkBtn}
+            onPress={() =>
+              Linking.openURL(`https://www.google.com/maps?q=${startLat},${startLng}`)
+            }
+          >
+            <Text style={styles.mapLinkText}>
+              📍 View Location on Google Maps
+            </Text>
+          </TouchableOpacity>
+        ) : null}
+
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

@@ -87,7 +87,7 @@ export const useMessageStore = create(
           },
         })),
 
-     markMessageDeleted: (messageId) =>
+      markMessageDeleted: (messageId) =>
         set((state) => {
           const updated = { ...state.messagesByChatId };
           for (const chatKey in updated) {

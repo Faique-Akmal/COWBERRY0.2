@@ -74,7 +74,18 @@ const CustomDrawer = (props) => {
         {/* Profile Section */}
         <View style={styles.header}>
           <View style={styles.profileContainer}>
-            <Image source={require('../images/profile.webp')} style={styles.avatar} />
+            
+            {userData && (
+              <Image
+                source={
+                  userData.profile_image
+                    ? { uri: userData.profile_image }
+                    : require("../images/profile.webp")
+                }
+                style={styles.avatar}
+              />
+            )}
+
             <View style={styles.profileTextContainer}>
               {userData ? (
                 <>
@@ -94,8 +105,8 @@ const CustomDrawer = (props) => {
 
         {/* NEW BUTTONS BELOW SETTINGS */}
         <View>
-          
-          
+
+
           <TouchableOpacity
             style={[styles.customButton]}
             onPress={() => navigation.navigate('SocketChatBox')}>
@@ -103,12 +114,12 @@ const CustomDrawer = (props) => {
             <Text style={styles.newButtonText}>Chats</Text>
           </TouchableOpacity>
 
-         <TouchableOpacity
+          <TouchableOpacity
             style={[styles.customButton]}
-           onPress={() => navigation.navigate('Attendance')}>
+            onPress={() => navigation.navigate('Attendance')}>
             <MaterialIcons name="view-list" size={20} color="#ffe3afff" />
             <Text style={styles.newButtonText}>Attandance</Text>
-          </TouchableOpacity> 
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.customButton]}
@@ -155,7 +166,7 @@ export default CustomDrawer;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#D2AF6F',
+    backgroundColor: '#d2af6f',
   },
   customButton: {
     flexDirection: 'row',
@@ -163,7 +174,7 @@ const styles = StyleSheet.create({
     padding: 7,
     borderRadius: 8,
     marginVertical: 4,
-    backgroundColor: '#4E8D7C',
+    backgroundColor: '#377255',
   },
   newButtonText: {
     marginLeft: 10,
@@ -181,7 +192,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#D2AF6F',
     borderBottomWidth: 1,
     borderBottomColor: '#000',
-    marginBottom:10
+    marginBottom: 10
   },
   profileContainer: {
     flexDirection: 'column',

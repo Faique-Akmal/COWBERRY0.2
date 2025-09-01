@@ -81,7 +81,7 @@ const CreateGroup = ({ navigation }) => {
                 style={{
                     ...StyleSheet.absoluteFillObject,
                     // backgroundColor: "rgba(255,255,255,0.1)",
-                     backgroundColor: "rgba(0,0,0,0.1)", 
+                    backgroundColor: "rgba(0,0,0,0.1)",
                 }}
             />
             {/* 🔙 Custom Back Button Row */}
@@ -99,36 +99,36 @@ const CreateGroup = ({ navigation }) => {
                 <Text style={styles.label}>Group Name</Text>
                 <TextInput
                     style={styles.input}
-                    placeholder="Enter new group name"
+                    placeholder="Enter Group name"
                     value={groupName}
                     onChangeText={setGroupName}
                     placeholderTextColor="#999"
                 />
 
                 {/* Selected Members Chips */}
-          {selectedMembers.length > 0 && (
-  <View style={styles.selectedContainer}>
-    {users
-      .filter((u) => selectedMembers.includes(u.id))
-      .map((user) => (
-        <View key={user.id} style={styles.chip}>
-          <Text style={styles.chipText}>{user.username}</Text>
+                {selectedMembers.length > 0 && (
+                    <View style={styles.selectedContainer}>
+                        {users
+                            .filter((u) => selectedMembers.includes(u.id))
+                            .map((user) => (
+                                <View key={user.id} style={styles.chip}>
+                                    <Text style={styles.chipText}>{user.username}</Text>
 
-          {/* ❌ Remove Button */}
-          <TouchableOpacity
-            onPress={() =>
-              setSelectedMembers((prev) =>
-                prev.filter((id) => id !== user.id)
-              )
-            }
-            style={styles.removeBtn}
-          >
-            <Text style={styles.removeBtnText}>❌</Text>
-          </TouchableOpacity>
-        </View>
-      ))}
-  </View>
-)}
+                                    {/* ❌ Remove Button */}
+                                    <TouchableOpacity
+                                        onPress={() =>
+                                            setSelectedMembers((prev) =>
+                                                prev.filter((id) => id !== user.id)
+                                            )
+                                        }
+                                        style={styles.removeBtn}
+                                    >
+                                        <Text style={styles.removeBtnText}>❌</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            ))}
+                    </View>
+                )}
 
                 {/* Member Selection */}
                 <Text style={styles.label}>Select Members</Text>
@@ -186,22 +186,22 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
     },
     card: {
-  backgroundColor: "#fff",
-  borderRadius: 16,
-  padding: 20,
+        backgroundColor: "#fff",
+        borderRadius: 16,
+        padding: 20,
 
-  // iOS Shadow
-  shadowColor: "#000",
-  shadowOffset: {
-    width: 0,
-    height: 4,   // neeche ki taraf zyada shadow
-  },
-  shadowOpacity: 0.15, // shadow ki transparency
-  shadowRadius: 6,
+        // iOS Shadow
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 4,   // neeche ki taraf zyada shadow
+        },
+        shadowOpacity: 0.15, // shadow ki transparency
+        shadowRadius: 6,
 
-  // Android Shadow
-  elevation: 6,
-},
+        // Android Shadow
+        elevation: 6,
+    },
     heading: {
         fontSize: 20,
         fontWeight: "700",
@@ -247,36 +247,36 @@ const styles = StyleSheet.create({
         borderColor: "#367355",
     },
     selectedContainer: {
-  flexDirection: "row",
-  flexWrap: "wrap",
-  marginVertical: 10,
-  
-},
+        flexDirection: "row",
+        flexWrap: "wrap",
+        marginVertical: 10,
 
-chip: {
-  flexDirection: "row",
-  alignItems: "center",
-  paddingHorizontal: 8,
-  paddingVertical: 4,
-  borderRadius: 10,
-  margin: 3,
-  backgroundColor:"#367355"
-},
+    },
 
-chipText: {
-  marginRight: 6,
-  fontSize: 14,
-  color: "#FFF",
-},
+    chip: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 10,
+        margin: 3,
+        backgroundColor: "#367355"
+    },
 
-removeBtn: {
-  paddingLeft: 4,
-},
+    chipText: {
+        marginRight: 6,
+        fontSize: 14,
+        color: "#FFF",
+    },
 
-removeBtnText: {
-  fontSize: 14,
-  color: "red",
-},
+    removeBtn: {
+        paddingLeft: 4,
+    },
+
+    removeBtnText: {
+        fontSize: 14,
+        color: "red",
+    },
 
     createBtn: {
         backgroundColor: "#367355",
