@@ -3,10 +3,11 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import ChatListScreen from "./ChatListScreen";
 import ChatScreen from "./ChatScreen";
 import { useNavigation } from "@react-navigation/native";
-import { TouchableOpacity, Text } from "react-native";
+import { TouchableOpacity, Image, Text } from "react-native";
 import { useSocketStore } from "../stores/socketStore";
 import { useMessageStore } from "../stores/messageStore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Ionicons from "react-native-vector-icons/Ionicons";
 
 const Stack = createNativeStackNavigator();
 
@@ -47,7 +48,12 @@ export default function SocketChatBox(route) {
         component={ChatListScreen}
         options={{
           headerShown: true,
-          headerTitle: "Chats",
+          headerTitle: () => (
+            <Image
+              source={require("../../images/cowberryLogo.png")}
+              style={{ width: 120, height: 40, resizeMode: "contain" }}
+            />
+          ),
           headerLeft: () => {
             const navigation = useNavigation();
             return (
@@ -55,7 +61,7 @@ export default function SocketChatBox(route) {
                 onPress={() => navigation.goBack()}
                 style={{ marginLeft: 10 }}
               >
-                <Text style={{ color: "blue" }}>Back</Text>
+                <Ionicons name="arrow-back" size={24} color="#377355" />
               </TouchableOpacity>
             );
           },

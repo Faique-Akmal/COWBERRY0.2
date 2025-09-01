@@ -156,7 +156,7 @@
 
 
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, ScrollView } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import axiosInstance from "../TokenHandling/axiosInstance";
 
@@ -205,6 +205,15 @@ export default function UpdateTask({ route, navigation }) {
   };
 
   return (
+     <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={80} // header ki height jitna offset
+        >
+          <ScrollView 
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
+      >
     <View style={styles.container}>
       {/* Back Button */}
       <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
@@ -290,6 +299,8 @@ export default function UpdateTask({ route, navigation }) {
         </View>
       </View>
     </View>
+    </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

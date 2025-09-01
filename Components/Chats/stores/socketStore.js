@@ -204,9 +204,9 @@ export const useSocketStore = create((set, get) => ({
           break;
 
         case "delete_message":
-      // ✅ yahan turant store update karo
-      deleteMessage(`${chatInfo.chatId}-${chatInfo.chatType}`, data.message_id || data.id);
-      break;
+          // ✅ yahan turant store update karo
+          deleteMessage(`${chatInfo.chatId}-${chatInfo.chatType}`, data.message_id || data.id);
+          break;
 
 
         case "typing":

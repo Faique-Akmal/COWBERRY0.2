@@ -1211,8 +1211,9 @@ import {
 } from "react-native";
 import DropDownPicker from "react-native-dropdown-picker";
 import axiosInstance from "../TokenHandling/axiosInstance";
+import Ionicons from "react-native-vector-icons/Ionicons";
 
-export default function AllUser({navigation}) {
+export default function AllUser({ navigation }) {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [search, setSearch] = useState("");
@@ -1318,11 +1319,9 @@ export default function AllUser({navigation}) {
   const ListHeader = () => (
     <View style={styles.headerContainer}>
 
-         <TouchableOpacity
-              onPress={() => navigation.goBack()}
-            >
-              <Text>go back</Text>
-            </TouchableOpacity>
+      <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 10 }}>
+        <Ionicons name="arrow-back" size={26} color="#377355" />
+      </TouchableOpacity>
 
       {fetchError ? <Text style={styles.errorText}>{fetchError}</Text> : null}
 
@@ -1335,39 +1334,39 @@ export default function AllUser({navigation}) {
       />
 
       <View style={styles.filterRow}>
-<View style={[styles.dropdownWrapper, { zIndex: roleOpen ? 3000 : 1 }]}>
-  <DropDownPicker
-    open={roleOpen}
-    value={role}
-    items={roleItems}
-    setOpen={setRoleOpen}
-    setValue={setRole}
-    setItems={setRoleItems}
-    placeholder="Filter by Role"
-    containerStyle={styles.dropdownContainerStyle}
-    style={[styles.dropdown, { backgroundColor: '#fff' }]}
-    dropDownContainerStyle={[styles.dropDownBox, { backgroundColor: '#fff', maxHeight: 300 }]}
-    listMode="MODAL"
-    nestedScrollEnabled={true}
-  />
-</View>
+        <View style={[styles.dropdownWrapper, { zIndex: roleOpen ? 3000 : 1 }]}>
+          <DropDownPicker
+            open={roleOpen}
+            value={role}
+            items={roleItems}
+            setOpen={setRoleOpen}
+            setValue={setRole}
+            setItems={setRoleItems}
+            placeholder="Filter by Role"
+            containerStyle={styles.dropdownContainerStyle}
+            style={[styles.dropdown, { backgroundColor: '#fff' }]}
+            dropDownContainerStyle={[styles.dropDownBox, { backgroundColor: '#fff', maxHeight: 300 }]}
+            listMode="MODAL"
+            nestedScrollEnabled={true}
+          />
+        </View>
 
-<View style={[styles.dropdownWrapper, { zIndex: statusOpen ? 2000 : 1 }]}>
-  <DropDownPicker
-    open={statusOpen}
-    value={status}
-    items={statusItems}
-    setOpen={setStatusOpen}
-    setValue={setStatus}
-    setItems={setStatusItems}
-    placeholder="Filter by Status"
-    containerStyle={styles.dropdownContainerStyle}
-    style={[styles.dropdown, { backgroundColor: '#fff' }]}
-    dropDownContainerStyle={[styles.dropDownBox, { backgroundColor: '#fff', maxHeight: 300 }]}
-    listMode="MODAL"
-    nestedScrollEnabled={true}
-  />
-</View>
+        <View style={[styles.dropdownWrapper, { zIndex: statusOpen ? 2000 : 1 }]}>
+          <DropDownPicker
+            open={statusOpen}
+            value={status}
+            items={statusItems}
+            setOpen={setStatusOpen}
+            setValue={setStatus}
+            setItems={setStatusItems}
+            placeholder="Filter by Status"
+            containerStyle={styles.dropdownContainerStyle}
+            style={[styles.dropdown, { backgroundColor: '#fff' }]}
+            dropDownContainerStyle={[styles.dropDownBox, { backgroundColor: '#fff', maxHeight: 300 }]}
+            listMode="MODAL"
+            nestedScrollEnabled={true}
+          />
+        </View>
 
       </View>
 
@@ -1437,18 +1436,18 @@ export default function AllUser({navigation}) {
 
 const styles = StyleSheet.create({
   safe: {
-     flex: 1, 
-     backgroundColor: "#fff" ,
-    },
-  container: { 
     flex: 1,
-     padding: 5, 
-     backgroundColor: "#fff" ,
-    },
+    backgroundColor: "#fff",
+  },
+  container: {
+    flex: 1,
+    padding: 5,
+    backgroundColor: "#fff",
+  },
 
-  headerContainer: { 
+  headerContainer: {
     marginBottom: 8,
-   },
+  },
 
   input: {
     borderWidth: 1,
@@ -1458,25 +1457,25 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 
-  filterRow: { 
-    flexDirection: "row", 
-    marginBottom: 10 ,
+  filterRow: {
+    flexDirection: "row",
+    marginBottom: 10,
   },
-  dropdownWrapper: { 
-    flex: 1, 
-    marginRight: 6 ,
+  dropdownWrapper: {
+    flex: 1,
+    marginRight: 6,
   },
-  dropdownContainerStyle: { 
+  dropdownContainerStyle: {
     height: 40,
-   },
-  dropdown: { 
-    borderColor: "#ccc", 
+  },
+  dropdown: {
+    borderColor: "#ccc",
     borderRadius: 8,
-     height: 10 ,
-    },
+    height: 10,
+  },
   dropDownBox: {
-     borderColor: "#ccc",
-     },
+    borderColor: "#ccc",
+  },
 
   clearBtn: {
     backgroundColor: "#D2AF6F",
@@ -1484,39 +1483,39 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
     marginBottom: 8,
-    marginTop:8
+    marginTop: 8
   },
-  clearBtnText: { 
-    color: "#fff", 
+  clearBtnText: {
+    color: "#fff",
     fontWeight: "600",
-   },
+  },
 
   row: {
     flexDirection: "row",
-    paddingVertical:12,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
     alignItems: "center",
-     columnGap: 10,
+    columnGap: 10,
   },
-  cell: { 
-    flex: 1, 
-    fontSize: 12 
+  cell: {
+    flex: 1,
+    fontSize: 12
   },
   tableHeader: {
     //  backgroundColor: "#4E8D7C" ,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#4E8D7C",
-   paddingLeft:5
-      },
-  headerCell: { 
-    flex: 1, 
-    fontWeight: "700", 
-    color: "#000", 
-    fontSize: 12, 
-   
-    
+    paddingLeft: 5
+  },
+  headerCell: {
+    flex: 1,
+    fontWeight: "700",
+    color: "#000",
+    fontSize: 12,
+
+
   },
 
   roleBadge: {
@@ -1527,26 +1526,26 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 6,
   },
-  status: { 
-    flex: 1, 
+  status: {
+    flex: 1,
     fontWeight: "700",
-     fontSize: 12 
-    },
-  errorText: { 
-    color: "red", 
-    marginBottom: 8 
+    fontSize: 12
+  },
+  errorText: {
+    color: "red",
+    marginBottom: 8
   },
 
-  dropdown: { 
-  borderColor: "#ccc", 
-  borderRadius: 8, 
-  height: 40, 
-  backgroundColor: '#fff' 
-},
-dropDownBox: { 
-  borderColor: "#ccc", 
-  backgroundColor: '#fff', 
-  maxHeight: 300 
-},
+  dropdown: {
+    borderColor: "#ccc",
+    borderRadius: 8,
+    height: 40,
+    backgroundColor: '#fff'
+  },
+  dropDownBox: {
+    borderColor: "#ccc",
+    backgroundColor: '#fff',
+    maxHeight: 300
+  },
 
 });

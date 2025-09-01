@@ -1,6 +1,5 @@
-// EndTask.jsx
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, Alert, ScrollView, Platform, Linking } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, Alert, ScrollView, Platform, Linking, KeyboardAvoidingView } from "react-native";
 import * as ImagePicker from "react-native-image-picker";
 import Geolocation from "react-native-geolocation-service";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -16,11 +15,15 @@ export default function EndTask({ navigation }) {
   const [description, setDescription] = useState("");
   const [userId, setUserId] = useState("");
 
+  const formatCoordinate = (value) => {
+    return parseFloat(value).toFixed(6); // max 6 decimal places
+  };
+
   useEffect(() => {
     Geolocation.getCurrentPosition(
       (pos) => {
-        setEndLat(pos.coords.latitude.toString());
-        setEndLng(pos.coords.longitude.toString());
+        setEndLat(formatCoordinate(pos.coords.latitude));
+        setEndLng(formatCoordinate(pos.coords.longitude));
       },
       (err) => {
         Alert.alert("Location Error", err.message);
@@ -76,8 +79,8 @@ export default function EndTask({ navigation }) {
 
     Geolocation.getCurrentPosition(
       async (pos) => {
-        setEndLat(pos.coords.latitude.toString());
-        setEndLng(pos.coords.longitude.toString());
+        setEndLat(formatCoordinate(pos.coords.latitude));
+        setEndLng(formatCoordinate(pos.coords.longitude));
         await handleSubmit();
       },
       (err) => {
@@ -119,69 +122,75 @@ export default function EndTask({ navigation }) {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={80} // header ki height jitna offset
+    >
+      <ScrollView style={styles.container}>
 
-      <TouchableOpacity
-        onPress={() => navigation.goBack()}
-      >
-        <Text>go back</Text>
-      </TouchableOpacity>
-
-      <Text style={styles.label}>
-        Odometer Image <Icon name="asterisk" size={10} color="red" />
-      </Text>
-      {odometerImage && <Image source={{ uri: odometerImage.uri }} style={styles.preview} />}
-      <TouchableOpacity style={styles.button} onPress={() => pickImage(setOdometerImage)}>
-        <Text style={styles.buttonText}>Pick Odometer Photo</Text>
-      </TouchableOpacity>
-
-      {/* Selfie Image */}
-      <Text style={styles.label}>
-        Selfie Image <Icon name="asterisk" size={10} color="red" />
-      </Text>
-      {selfieImage && <Image source={{ uri: selfieImage.uri }} style={styles.preview} />}
-      <TouchableOpacity style={styles.button} onPress={() => pickImage(setSelfieImage)}>
-        <Text style={styles.buttonText}>Pick Selfie</Text>
-      </TouchableOpacity>
-
-      {/* End Latitude */}
-      <Text style={styles.label}>
-        End Latitude <Icon name="asterisk" size={10} color="red" />
-      </Text>
-      <TextInput style={styles.input} value={endLat} onChangeText={setEndLat} editable={false} />
-
-      {/* End Longitude */}
-      <Text style={styles.label}>
-        End Longitude <Icon name="asterisk" size={10} color="red" />
-      </Text>
-      <TextInput style={styles.input} value={endLng} onChangeText={setEndLng} editable={false} />
-
-      {/* Description */}
-      <Text style={styles.label}>
-        Description <Icon name="asterisk" size={10} color="red" />
-      </Text>
-      <TextInput
-        style={[styles.input, { height: 80 }]}
-        value={description}
-        onChangeText={setDescription}
-        multiline
-      />
-
-      <TouchableOpacity style={styles.submitBtn} onPress={onPressEndAttendance}>
-        <Text style={styles.submitText}>End Attendance</Text>
-      </TouchableOpacity>
-
-      {endLat && endLng ? (
         <TouchableOpacity
-          style={styles.mapLinkBtn}
-          onPress={() =>
-            Linking.openURL(`https://www.google.com/maps?q=${endLat},${endLng}`)
-          }
+          onPress={() => navigation.goBack()}
         >
-          <Text style={styles.mapLinkText}>📍 View Location on Google Maps</Text>
+          <Text>go back</Text>
         </TouchableOpacity>
-      ) : null}
-    </ScrollView>
+
+        <Text style={styles.label}>
+          Odometer Image <Icon name="asterisk" size={10} color="red" />
+        </Text>
+        {odometerImage && <Image source={{ uri: odometerImage.uri }} style={styles.preview} />}
+        <TouchableOpacity style={styles.button} onPress={() => pickImage(setOdometerImage)}>
+          <Text style={styles.buttonText}>Pick Odometer Photo</Text>
+        </TouchableOpacity>
+
+        {/* Selfie Image */}
+        <Text style={styles.label}>
+          Selfie Image <Icon name="asterisk" size={10} color="red" />
+        </Text>
+        {selfieImage && <Image source={{ uri: selfieImage.uri }} style={styles.preview} />}
+        <TouchableOpacity style={styles.button} onPress={() => pickImage(setSelfieImage)}>
+          <Text style={styles.buttonText}>Pick Selfie</Text>
+        </TouchableOpacity>
+
+        {/* End Latitude */}
+        <Text style={styles.label}>
+          End Latitude <Icon name="asterisk" size={10} color="red" />
+        </Text>
+        <TextInput style={styles.input} value={endLat} onChangeText={setEndLat} editable={false} />
+
+        {/* End Longitude */}
+        <Text style={styles.label}>
+          End Longitude <Icon name="asterisk" size={10} color="red" />
+        </Text>
+        <TextInput style={styles.input} value={endLng} onChangeText={setEndLng} editable={false} />
+
+        {/* Description */}
+        <Text style={styles.label}>
+          Description <Icon name="asterisk" size={10} color="red" />
+        </Text>
+        <TextInput
+          style={[styles.input, { height: 80 }]}
+          value={description}
+          onChangeText={setDescription}
+          multiline
+        />
+
+        <TouchableOpacity style={styles.submitBtn} onPress={onPressEndAttendance}>
+          <Text style={styles.submitText}>End Attendance</Text>
+        </TouchableOpacity>
+
+        {endLat && endLng ? (
+          <TouchableOpacity
+            style={styles.mapLinkBtn}
+            onPress={() =>
+              Linking.openURL(`https://www.google.com/maps?q=${endLat},${endLng}`)
+            }
+          >
+            <Text style={styles.mapLinkText}>📍 View Location on Google Maps</Text>
+          </TouchableOpacity>
+        ) : null}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
