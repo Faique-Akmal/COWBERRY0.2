@@ -6,6 +6,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axiosInstance from "../TokenHandling/axiosInstance";
 import { check, request, PERMISSIONS, RESULTS, openSettings } from "react-native-permissions";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { stopLocationTracking } from "../Task/AttendanceHelpers";
 
 export default function EndTask({ navigation }) {
   const [odometerImage, setOdometerImage] = useState(null);
@@ -114,6 +115,7 @@ export default function EndTask({ navigation }) {
       setEndLat("");
       setEndLng("");
       setDescription("");
+      stopLocationTracking()
     } catch (err) {
       console.log("Error:", err.response?.status, err.response?.data || err.message);
       console.log({ odometerImage, selfieImage, endLat, endLng, description, userId });
