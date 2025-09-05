@@ -77,12 +77,12 @@ export const useMessageStore = create(
           },
         })),
 
-      editMessage: (chatKey, updatedMessage) =>
+      editMessage: (chatKey, messageId, patch) =>
         set((state) => ({
           messagesByChatId: {
             ...state.messagesByChatId,
             [chatKey]: (state.messagesByChatId[chatKey] || []).map((msg) =>
-              msg.id === updatedMessage.id ? updatedMessage : msg
+              msg.id === messageId ? { ...msg, ...patch } : msg
             ),
           },
         })),
