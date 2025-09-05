@@ -159,10 +159,10 @@ export const useSocketStore = create((set, get) => ({
       return;
     }
 
-    const socketUrl = `wss://${WS_URL}/ws/chat/${chatInfo.chatType === "group"
-      ? chatInfo.chatId
-      : `personal/${chatInfo.chatId}`
-      }/?token=${token}`;
+    // const socketUrl = `wss://${WS_URL}/ws/chat/${chatInfo.chatType === "group"
+    //   ? chatInfo.chatId
+    //   : `personal/${chatInfo.chatId}`
+    //   }/?token=${token}`;
     const socketUrl = `wss://${WS_URL}/ws/chat/${chatInfo.chatType === "group"
       ? chatInfo.chatId
       : `personal/${chatInfo.chatId}`
