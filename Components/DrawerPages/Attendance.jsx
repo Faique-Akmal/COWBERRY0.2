@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View, TouchableOpacity, ImageBackground } from 'react-native'
 import React from 'react'
+import Ionicons from "react-native-vector-icons/Ionicons";
 
 const Attendance = ({ navigation }) => {
   return (
@@ -12,6 +13,10 @@ const Attendance = ({ navigation }) => {
       >
         <View style={styles.imageOverlay} />
       </ImageBackground>
+
+      <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 10 }}>
+        <Ionicons name="arrow-back" size={26} color="#377355" />
+      </TouchableOpacity>
 
 
       <View style={styles.overlay}>

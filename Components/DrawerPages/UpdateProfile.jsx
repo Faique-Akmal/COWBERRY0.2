@@ -7,9 +7,10 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
+  KeyboardAvoidingView
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import axiosInstance from "../TokenHandling/axiosInstance"; // ✅ token-handled axios
+import axiosInstance from "../TokenHandling/axiosInstance"; 
 
 export default function UpdateProfile({ route, navigation }) {
   const { userData } = route.params;
@@ -32,20 +33,15 @@ export default function UpdateProfile({ route, navigation }) {
     setForm({ ...form, [key]: value });
   };
 
-//   Patch API    /me/
+
+
+//   Patch API    /users/{id}/
 const handleUpdate = async () => {
   try {
-    const formData = new FormData();
-
-    Object.keys(form).forEach((key) => {
-      if (form[key]) {
-        formData.append(key, form[key]);
-      }
-    });
-
-    const response = await axiosInstance.patch("/me/", formData, {
+    // Direct JSON body
+    const response = await axiosInstance.patch(`/users/${userData.id}/`, form, {
       headers: {
-        "Content-Type": "multipart/form-data",
+        "Content-Type": "application/json",
       },
     });
 
@@ -60,7 +56,14 @@ const handleUpdate = async () => {
 
 
 
+
+
   return (
+     <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={80} // header ki height jitna offset
+      > 
     <ScrollView style={styles.container}>
       {Object.keys(form).map((key) =>
         key !== "birth_date" ? (
@@ -100,6 +103,7 @@ const handleUpdate = async () => {
         <Text style={styles.buttonText}>Update Profile</Text>
       </TouchableOpacity>
     </ScrollView>
+     </KeyboardAvoidingView>
   );
 }
 

@@ -3,10 +3,11 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import ChatListScreen from "./ChatListScreen";
 import ChatScreen from "./ChatScreen";
 import { useNavigation } from "@react-navigation/native";
-import { TouchableOpacity , Text} from "react-native";
+import { TouchableOpacity, Image, Text } from "react-native";
 import { useSocketStore } from "../stores/socketStore";
 import { useMessageStore } from "../stores/messageStore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Ionicons from "react-native-vector-icons/Ionicons";
 
 const Stack = createNativeStackNavigator();
 
@@ -37,43 +38,45 @@ export default function SocketChatBox(route) {
     return () => {
       disconnect();
     };
-  }, [chatInfo?.id]); 
+  }, [chatInfo?.id]);
   return (
     <Stack.Navigator>
       {/* Chat List */}
-     
-<Stack.Screen
-  name="ChatList"
-  component={ChatListScreen}
-  options={{
-    headerShown: true,
-    headerTitle: "Chats",
-    headerLeft: () => {
-      const navigation = useNavigation();
-      return (
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={{ marginLeft: 10 }}
-        >
-          <Text style={{ color: "#000" }}>Back</Text>
-        </TouchableOpacity>
-      );
-    },
-  }}
-/>
+
+      <Stack.Screen
+        name="ChatList"
+        component={ChatListScreen}
+        options={{
+          headerShown: true,
+          headerTitle: () => (
+            <Image
+              source={require("../../images/cowberryLogo.png")}
+              style={{ width: 120, height: 40, resizeMode: "contain" }}
+            />
+          ),
+          headerLeft: () => {
+            const navigation = useNavigation();
+            return (
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={{ marginLeft: 10 }}
+              >
+                <Ionicons name="arrow-back" size={24} color="#377355" />
+              </TouchableOpacity>
+            );
+          },
+        }}
+      />
 
 
       {/* Chat Screen */}
       <Stack.Screen
         name="ChatScreen"
         component={ChatScreen}
-        options={({ route }) => {
-          const { type, username, groupName } = route.params || {};
-          return {
-            headerTitle: type === "group" ? groupName : username,
-            headerBackTitle: "Back",
-          };
+        options={{
+          headerShown: false,
         }}
+
       />
     </Stack.Navigator>
   );
