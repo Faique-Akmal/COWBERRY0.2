@@ -132,6 +132,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Geolocation from "react-native-geolocation-service";
 import NetInfo from "@react-native-community/netinfo";
 import axiosInstance from "../TokenHandling/axiosInstance";
+import DeviceInfo from "react-native-device-info";
 
 let locationInterval = null;
 let userId = null;
@@ -191,11 +192,11 @@ export const startLocationTracking = (intervalSec) => {
           console.log("⚠️ userId not found, skipping location post");
           return;
         }
-
+        const batteryLevel = await DeviceInfo.getBatteryLevel();
         const payload = {
           latitude: pos.coords.latitude.toFixed(6),
           longitude: pos.coords.longitude.toFixed(6),
-          battery_level: 90, // TODO: battery API se lena
+          battery_level: Math.round(batteryLevel * 100),
           user: userId,
         };
 

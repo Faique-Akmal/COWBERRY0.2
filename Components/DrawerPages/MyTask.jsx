@@ -13,6 +13,8 @@ import {
 } from "react-native";
 import axiosInstance from "../TokenHandling/axiosInstance";
 import { useFocusEffect } from "@react-navigation/native";
+import Ionicons from "react-native-vector-icons/Ionicons";
+
 
 export default function MyTask({ navigation }) {
   const [tasks, setTasks] = useState([]);
@@ -23,6 +25,8 @@ export default function MyTask({ navigation }) {
     try {
       const response = await axiosInstance.get("/my-assigned-tasks/");
       setTasks(response.data.results || []);
+console.log(tasks);
+
     } catch (error) {
       console.log("Error fetching tasks:", error);
     } finally {
@@ -80,7 +84,12 @@ export default function MyTask({ navigation }) {
       {/*  Google Maps Button */}
       <TouchableOpacity
         style={styles.mapButton}
-        onPress={() => openInGoogleMaps(item.dest_lat, item.dest_lng)}
+
+        onPress={() => {
+          console.log("Task LatLng:", item.dest_lat, item.dest_lng);
+          openInGoogleMaps(item.dest_lat, item.dest_lng)
+        }
+        }
       >
         <Text style={styles.mapButtonText}>Start Task</Text>
       </TouchableOpacity>
@@ -104,6 +113,9 @@ export default function MyTask({ navigation }) {
   if (!loading && tasks.length === 0) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 10 }}>
+          <Ionicons name="arrow-back" size={26} color="#377355" />
+        </TouchableOpacity>
         <Text style={{ fontSize: 16, color: "#555" }}>No tasks assigned</Text>
       </View>
     );
@@ -111,10 +123,8 @@ export default function MyTask({ navigation }) {
 
   return (
     <>
-      <TouchableOpacity
-        onPress={() => navigation.goBack()}
-      >
-        <Text>go back</Text>
+      <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 10 }}>
+        <Ionicons name="arrow-back" size={26} color="#377355" />
       </TouchableOpacity>
 
       <FlatList

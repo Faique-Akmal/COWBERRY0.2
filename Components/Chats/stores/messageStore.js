@@ -87,16 +87,26 @@ export const useMessageStore = create(
           },
         })),
 
+      markMessageDeleted: (messageId) =>
+        set((state) => {
+          const updated = { ...state.messagesByChatId };
+          for (const chatKey in updated) {
+            updated[chatKey] = updated[chatKey].map((msg) =>
+              msg.id === messageId ? { ...msg, is_deleted: true } : msg
+            );
+          }
+          return { messagesByChatId: updated };
+        }),
 
       deleteMessage: (chatKey, messageId) =>
-        set((state) => ({
-          messagesByChatId: {
-            ...state.messagesByChatId,
-            [chatKey]: (state.messagesByChatId[chatKey] || []).filter(
-              (msg) => msg.id !== messageId
-            ),
-          },
-        })),
+        set((state) => {
+          const messages = state.messagesByChatId[chatKey] || [];
+          const updatedMessages = messages.map((msg) =>
+            msg.id === messageId ? { ...msg, content: "", is_deleted: true } : msg
+          );
+          return { messagesByChatId: { ...state.messagesByChatId, [chatKey]: updatedMessages } };
+        }),
+
 
       clearMessages: (chatKey) =>
         set((state) => {

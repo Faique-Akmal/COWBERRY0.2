@@ -6,34 +6,14 @@
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
 	<string>COWBERRY</string>
-    <key>CFBundleExecutable</key>
+	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>COWBERRY</string> <!-- FIXED -->
-
-	<key>UIAppFonts</key>
-	<array>
-	  <string>AntDesign.ttf</string>
-	  <string>Entypo.ttf</string>
-	  <string>EvilIcons.ttf</string>
-	  <string>Feather.ttf</string>
-	  <string>FontAwesome.ttf</string>
-	  <string>FontAwesome5_Brands.ttf</string>
-	  <string>FontAwesome5_Regular.ttf</string>
-	  <string>FontAwesome5_Solid.ttf</string>
-	  <string>Foundation.ttf</string>
-	  <string>Ionicons.ttf</string>
-	  <string>MaterialIcons.ttf</string>
-	  <string>MaterialCommunityIcons.ttf</string>
-	  <string>SimpleLineIcons.ttf</string>
-	  <string>Octicons.ttf</string>
-	  <string>Zocial.ttf</string>
-	</array>
-
+	<string>COWBERRY</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -53,26 +33,39 @@
 	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>We need access to your camera so you can take and upload your pictures</string>
+	<key>NSContactsUsageDescription</key>
+	<string>We need access to your contact</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>We use your location in the background to track your delivery progress and provide accurate ETAs.</string>
+	<key>NSLocationTemporaryUsageDescriptionDictionary</key>
+	<dict>
+		<key>DeliveryTrackingPrecise</key>
+		<string>We need your precise location to provide exact delivery tracking.</string>
+	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
-    <string>We use your location to show your current position and nearby deliveries.</string>
-    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-    <string>We use your location in the background to track your delivery progress and provide accurate ETAs.</string>
-    <key>NSLocationTemporaryUsageDescriptionDictionary</key>
-    <dict>
-    <key>DeliveryTrackingPrecise</key>
-    <string>We need your precise location to provide exact delivery tracking.</string>
-   </dict>
-   <key>NSContactsUsageDescription</key>
-  <string>We need access to your contact</string>
-  <key>NSPhotoLibraryUsageDescription</key>
-<string>This app needs access to your photos to upload images.</string>
-<key>NSPhotoLibraryAddUsageDescription</key>
-<string>This app needs access to save images to your gallery.</string>
-
-
-
-	<!-- <key>NSLocationWhenInUseUsageDescription</key>
-	<string></string> -->
+	<string>We use your location to show your current position and nearby deliveries.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>This app needs access to save images to your gallery.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs access to your photos to upload images.</string>
+	<key>UIAppFonts</key>
+	<array>
+		<string>AntDesign.ttf</string>
+		<string>Entypo.ttf</string>
+		<string>EvilIcons.ttf</string>
+		<string>Feather.ttf</string>
+		<string>FontAwesome.ttf</string>
+		<string>FontAwesome5_Brands.ttf</string>
+		<string>FontAwesome5_Regular.ttf</string>
+		<string>FontAwesome5_Solid.ttf</string>
+		<string>Foundation.ttf</string>
+		<string>Ionicons.ttf</string>
+		<string>MaterialIcons.ttf</string>
+		<string>MaterialCommunityIcons.ttf</string>
+		<string>SimpleLineIcons.ttf</string>
+		<string>Octicons.ttf</string>
+		<string>Zocial.ttf</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIRequiredDeviceCapabilities</key>
@@ -87,6 +80,5 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
-	
 </dict>
 </plist>

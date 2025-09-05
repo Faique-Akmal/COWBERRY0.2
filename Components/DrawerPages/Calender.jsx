@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { View, StyleSheet, ActivityIndicator, TouchableOpacity, Text } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { useNavigation } from "@react-navigation/native";
-import axiosInstance from "../TokenHandling/axiosInstance"; // ✅ apne axiosInstance ka path lagao
+import axiosInstance from "../TokenHandling/axiosInstance";
+import Ionicons from "react-native-vector-icons/Ionicons";
 
 export default function Calender() {
   const [markedDates, setMarkedDates] = useState({});
@@ -17,9 +18,9 @@ export default function Calender() {
     try {
       // ✅ API se data fetch
       const res = await axiosInstance.get("/my-assigned-tasks/");
-      const tasks = res.data.results || []; 
+      const tasks = res.data.results || [];
       console.log(res.data);
-      
+
       // ✅ Marked dates banate hain (sirf incomplete tasks)
       const marked = {};
       tasks.forEach((task) => {
@@ -56,19 +57,17 @@ export default function Calender() {
 
   return (
     <View style={styles.container}>
-         <TouchableOpacity
-              onPress={() => navigation.goBack()}
-            >
-              <Text>go back</Text>
-            </TouchableOpacity>
+      <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 10 }}>
+        <Ionicons name="arrow-back" size={26} color="#377355" />
+      </TouchableOpacity>
       <Calendar
         markedDates={markedDates}
         onDayPress={handleDayPress}
         enableSwipeMonths={true}
         theme={{
-          selectedDayBackgroundColor: "#4880FF",
-          todayTextColor: "#c7c41c",
-          arrowColor: "#4880FF",
+          selectedDayBackgroundColor: "#377355",
+          todayTextColor: "#377355",
+          arrowColor: "#377355",
         }}
       />
     </View>
