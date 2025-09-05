@@ -268,7 +268,11 @@ export default function ChatScreen({ route }) {
   const flatListRef = useRef(null);
 
   const chatKey = `${chatInfo.chatId}-${chatInfo.chatType}`;
-  const messages = messagesByChatId[chatKey] || [];
+  
+  const messages = useMessageStore(
+  (state) => state.messagesByChatId[chatKey] || []
+);
+
 
   useEffect(() => {
     console.log("ChatScreen chatInfo:", chatInfo);
