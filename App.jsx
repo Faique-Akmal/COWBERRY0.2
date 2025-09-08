@@ -6,6 +6,11 @@ import AppNavigator from './Components/Navigation/AppNavigator'
 import { useEffect } from 'react';
 import { startTokenRefreshInterval } from './Components/TokenHandling/tokenRefresher';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+// App.js (top)
+import { NativeModules } from "react-native";
+console.log("===DBG=== NativeModules keys:", Object.keys(NativeModules));
+console.log("===DBG=== LocationServiceBridge raw:", NativeModules.LocationServiceBridge);
+
 
 
 

@@ -1,13 +1,26 @@
+// StartTask.js (updated)
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, Alert, ScrollView, Platform, Linking, KeyboardAvoidingView } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  StyleSheet,
+  Alert,
+  ScrollView,
+  Platform,
+  Linking,
+  KeyboardAvoidingView,
+} from "react-native";
 import * as ImagePicker from "react-native-image-picker";
 import Geolocation from "react-native-geolocation-service";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axiosInstance from "../TokenHandling/axiosInstance";
-import { check, request, PERMISSIONS, RESULTS, openSettings } from "react-native-permissions";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { fetchMe, fetchLocationConfig } from "../Task/AttendanceHelpers";
-
+// make sure this path matches where you put permissions.js
+import { requestPermissions } from "../utils/permissions";
 
 export default function StartTask({ navigation }) {
   const [odometerImage, setOdometerImage] = useState(null);
@@ -17,12 +30,11 @@ export default function StartTask({ navigation }) {
   const [description, setDescription] = useState("");
   const [userId, setUserId] = useState("");
 
-
   const formatCoordinate = (value) => {
     return parseFloat(value).toFixed(6); // max 6 decimal places
   };
 
-  // Get location automatically
+  // Get location automatically (one-time when screen mounts)
   useEffect(() => {
     console.log("Fetching location...");
     Geolocation.getCurrentPosition(
@@ -33,7 +45,7 @@ export default function StartTask({ navigation }) {
       },
       (err) => {
         console.log("Location Error:", err.message);
-        Alert.alert("Location Error", err.message);
+        // don't alert immediately on mount; show only if user action requires it
       },
       { enableHighAccuracy: true, timeout: 15000 }
     );
@@ -45,67 +57,89 @@ export default function StartTask({ navigation }) {
     });
   }, []);
 
-  const pickImage = (setImage) => {
-    console.log("Opening gallery...");
-    ImagePicker.launchImageLibrary({ mediaType: "photo" }, (res) => {
-      if (res.didCancel) {
-        console.log("⚠️ User cancelled image picker");
-        return;
+  // Odometer photo (Back Camera)
+  const pickOdometerImage = () => {
+    console.log("Opening back camera...");
+    ImagePicker.launchCamera(
+      {
+        mediaType: "photo",
+        cameraType: "back",
+        saveToPhotos: false,
+      },
+      (res) => {
+        if (res.didCancel) {
+          console.log("⚠️ User cancelled camera");
+          return;
+        }
+        if (res.errorMessage) {
+          console.log("Camera Error:", res.errorMessage);
+          Alert.alert("Camera Error", res.errorMessage);
+          return;
+        }
+        if (res.assets && res.assets.length > 0) {
+          const img = res.assets[0];
+          console.log("Photo captured:", img);
+          setOdometerImage({
+            uri: img.uri,
+            type: img.type || "image/jpeg",
+            name: img.fileName || "odometer.jpg",
+          });
+        }
       }
-      if (res.errorMessage) {
-        console.log("Image Picker Error:", res.errorMessage);
-        return;
-      }
-      if (res.assets && res.assets.length > 0) {
-        const img = res.assets[0];
-        console.log("Image selected:", img);
-        setImage({
-          uri: img.uri,
-          type: img.type || "image/jpeg",
-          name: img.fileName || "photo.jpg",
-        });
-      } else {
-        console.log("No image returned");
-      }
-    });
+    );
   };
 
-  // 👇 ye helper bana lo
-  const checkLocationPermission = async () => {
-    const permission =
-      Platform.OS === "android"
-        ? PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION
-        : PERMISSIONS.IOS.LOCATION_WHEN_IN_USE;
-
-    const result = await check(permission);
-
-    if (result === RESULTS.GRANTED) {
-      return true;
-    } else if (result === RESULTS.DENIED) {
-      const req = await request(permission);
-      return req === RESULTS.GRANTED;
-    } else if (result === RESULTS.BLOCKED) {
-      Alert.alert(
-        "Permission Required",
-        "Please enable location permission from Settings",
-        [{ text: "Open Settings", onPress: () => openSettings() }]
-      );
-      return false;
-    }
-    return false;
+  // Selfie photo (Front Camera)
+  const pickSelfieImage = () => {
+    console.log("Opening front camera...");
+    ImagePicker.launchCamera(
+      {
+        mediaType: "photo",
+        cameraType: "front",
+        saveToPhotos: false,
+      },
+      (res) => {
+        if (res.didCancel) {
+          console.log("⚠️ User cancelled camera");
+          return;
+        }
+        if (res.errorMessage) {
+          console.log("Camera Error:", res.errorMessage);
+          Alert.alert("Camera Error", res.errorMessage);
+          return;
+        }
+        if (res.assets && res.assets.length > 0) {
+          const img = res.assets[0];
+          console.log("Photo captured:", img);
+          setSelfieImage({
+            uri: img.uri,
+            type: img.type || "image/jpeg",
+            name: img.fileName || "selfie.jpg",
+          });
+        }
+      }
+    );
   };
+
+  // onPressStartAttendance: request permissions first, then get fresh location and submit
   const onPressStartAttendance = async () => {
-    const hasPermission = await checkLocationPermission();
+    // 1) Request runtime permissions (foreground + background)
+    const perm = await requestPermissions();
+    if (!perm.ok) {
+      Alert.alert(
+        "Permission required",
+        "Location permission (including background) is required to start attendance. Please enable it in Settings if blocked."
+      );
+      return;
+    }
 
-    if (!hasPermission) return; // agar permission nahi mili to API run hi na ho
-
-    console.log("📍 Fetching fresh location...");
+    console.log("📍 Permissions OK — fetching fresh location...");
 
     Geolocation.getCurrentPosition(
       async (pos) => {
         if (pos.coords.latitude === 0) {
           console.log("⚠️ Latitude 0 mila, retrying in 2s...");
-          setTimeout(onPressStartAttendance, 2000); // retry
+          setTimeout(onPressStartAttendance, 2000);
           return;
         }
 
@@ -114,7 +148,6 @@ export default function StartTask({ navigation }) {
         setStartLat(formatCoordinate(pos.coords.latitude));
         setStartLng(formatCoordinate(pos.coords.longitude));
 
-        // location mil gayi to ab API call karo
         await handleSubmit();
       },
       (err) => {
@@ -124,110 +157,105 @@ export default function StartTask({ navigation }) {
       {
         enableHighAccuracy: true,
         timeout: 15000,
-        maximumAge: 0, // ❌ old cached location ignore karo
+        maximumAge: 0,
       }
     );
   };
 
+const handleSubmit = async () => {
+  console.log("Submitting data...");
+  console.log("Current state values:", {
+    odometerImage,
+    selfieImage,
+    startLat,
+    startLng,
+    description,
+    userId,
+  });
 
-  const handleSubmit = async () => {
-    console.log("Submitting data...");
-    console.log("Current state values:", {
-      odometerImage,
-      selfieImage,
-      startLat,
-      startLng,
-      description,
-      userId,
+  if (!odometerImage || !selfieImage || !startLat || !startLng || !description || !userId) {
+    Alert.alert("Error", "Please fill all fields and click both photos.");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("odometer_image", odometerImage);
+  formData.append("selfie_image", selfieImage);
+  formData.append("start_lat", startLat);
+  formData.append("start_lng", startLng);
+  formData.append("description", description);
+  formData.append("user", userId);
+
+  try {
+    const res = await axiosInstance.post("/attendance-start/", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
     });
+    console.log("API Response:", res.data);
 
-    if (!odometerImage || !selfieImage || !startLat || !startLng || !description || !userId) {
-      Alert.alert("Error", "Please fill all fields and select images.");
-      return;
-    }
+    Alert.alert("Success", "Attendance started successfully!");
+    setOdometerImage(null);
+    setSelfieImage(null);
+    setStartLat("");
+    setStartLng("");
+    setDescription("");
 
-    const formData = new FormData();
-    formData.append("odometer_image", odometerImage);
-    formData.append("selfie_image", selfieImage);
-    formData.append("start_lat", startLat);
-    formData.append("start_lng", startLng);
-    formData.append("description", description);
-    formData.append("user", userId);
+    // ✅ Update local user
+    await fetchMe();
 
-    try {
-      const res = await axiosInstance.post("/attendance-start/", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      console.log("API Response:", res.data);
-      console.log("API chal gai:");
-      Alert.alert("Success", "Attendance started successfully!");
-      setOdometerImage(null);
-      setSelfieImage(null);
-      setStartLat("");
-      setStartLng("");
-      setDescription("");
-      // Location tracking after set time interval
-      await fetchMe();
-      await fetchLocationConfig();
-    } catch (err) {
-      console.log("API Error:", err.response?.data || err.message);
-      Alert.alert("Error", "Failed to start attendance.");
-    }
-  };
+    // ✅ Fetch backend interval & start native background service
+    await fetchLocationConfig();
+
+  } catch (err) {
+    console.log("API Error:", err.response?.data || err.message);
+    Alert.alert("Error", "Failed to start attendance.");
+  }
+};
+
 
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={80} // header ki height jitna offset
+      keyboardVerticalOffset={80}
     >
       <ScrollView style={styles.container}>
-        {/* ✅ KeyboardAvoidingView Wrap */}
-
-
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text>go back</Text>
         </TouchableOpacity>
 
+        {/* Odometer */}
         <Text style={styles.label}>
-          Odometer Image{" "}
-          <Icon name="asterisk" size={10} color="red" /> {/* Asterisk Icon */}
+          Odometer Image <Icon name="asterisk" size={10} color="red" />
         </Text>
         {odometerImage && <Image source={{ uri: odometerImage.uri }} style={styles.preview} />}
-        <TouchableOpacity style={styles.button} onPress={() => pickImage(setOdometerImage)}>
-          <Text style={styles.buttonText}>Pick Odometer Photo</Text>
+        <TouchableOpacity style={styles.button} onPress={pickOdometerImage}>
+          <Text style={styles.buttonText}>Click Odometer Photo</Text>
         </TouchableOpacity>
 
-        {/* Selfie Image */}
+        {/* Selfie */}
         <Text style={styles.label}>
-          Selfie Image{" "}
-          <Icon name="asterisk" size={10} color="red" />
+          Selfie Image <Icon name="asterisk" size={10} color="red" />
         </Text>
         {selfieImage && <Image source={{ uri: selfieImage.uri }} style={styles.preview} />}
-        <TouchableOpacity style={styles.button} onPress={() => pickImage(setSelfieImage)}>
-          <Text style={styles.buttonText}>Pick Selfie</Text>
+        <TouchableOpacity style={styles.button} onPress={pickSelfieImage}>
+          <Text style={styles.buttonText}>Click Selfie</Text>
         </TouchableOpacity>
 
         {/* Start Latitude */}
         <Text style={styles.label}>
-          Start Latitude{" "}
-          <Icon name="asterisk" size={10} color="red" />
+          Start Latitude <Icon name="asterisk" size={10} color="red" />
         </Text>
-        <TextInput style={styles.input} value={startLat} onChangeText={setStartLat} editable={false} />
+        <TextInput style={styles.input} value={startLat} editable={false} />
 
         {/* Start Longitude */}
         <Text style={styles.label}>
-          Start Longitude{" "}
-          <Icon name="asterisk" size={10} color="red" />
+          Start Longitude <Icon name="asterisk" size={10} color="red" />
         </Text>
-        <TextInput style={styles.input} value={startLng} onChangeText={setStartLng} editable={false} />
+        <TextInput style={styles.input} value={startLng} editable={false} />
 
         {/* Description */}
         <Text style={styles.label}>
-          Description{" "}
-          <Icon name="asterisk" size={10} color="red" />
+          Description <Icon name="asterisk" size={10} color="red" />
         </Text>
         <TextInput
           style={[styles.input, { height: 80 }]}
@@ -240,7 +268,6 @@ export default function StartTask({ navigation }) {
           <Text style={styles.submitText}>Start Attendance</Text>
         </TouchableOpacity>
 
-
         {startLat && startLng ? (
           <TouchableOpacity
             style={styles.mapLinkBtn}
@@ -248,12 +275,9 @@ export default function StartTask({ navigation }) {
               Linking.openURL(`https://www.google.com/maps?q=${startLat},${startLng}`)
             }
           >
-            <Text style={styles.mapLinkText}>
-              📍 View Location on Google Maps
-            </Text>
+            <Text style={styles.mapLinkText}>📍 View Location on Google Maps</Text>
           </TouchableOpacity>
         ) : null}
-
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -299,5 +323,4 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 15,
   },
-
 });

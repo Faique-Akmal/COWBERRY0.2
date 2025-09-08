@@ -133,6 +133,7 @@ import Geolocation from "react-native-geolocation-service";
 import NetInfo from "@react-native-community/netinfo";
 import axiosInstance from "../TokenHandling/axiosInstance";
 import DeviceInfo from "react-native-device-info";
+import { startNativeTracking, updateNativeInterval } from "../native/LocationBridge"; 
 
 let locationInterval = null;
 let userId = null;
@@ -157,14 +158,22 @@ export const fetchMe = async () => {
 export const fetchLocationConfig = async () => {
   try {
     const res = await axiosInstance.get("/location-log-config/");
-    console.log("Location Config:", res.data);
-    if (res.data?.[0]?.refresh_interval) {
-      startLocationTracking(res.data[0].refresh_interval);
+    console.log("===DBG=== Location Config API raw:", res.data);
+
+    const interval = res.data?.[0]?.refresh_interval;
+    if (interval) {
+      console.log("===DBG=== Backend interval received:", interval);
+
+      // ✅ Native ko interval bhejo
+      updateNativeInterval(interval);
+      startNativeTracking(interval);
+      console.log("===DBG=== Native tracking requested with interval:", interval);
     }
   } catch (err) {
-    console.log("Location Config Error:", err.response?.data || err.message);
+    console.log("===DBG=== Location Config Error:", err.response?.data || err.message);
   }
 };
+
 
 // ✅ location tracking interval
 export const startLocationTracking = (intervalSec) => {

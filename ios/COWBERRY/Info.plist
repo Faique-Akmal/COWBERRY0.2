@@ -48,6 +48,12 @@
 	<string>This app needs access to save images to your gallery.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app needs access to your photos to upload images.</string>
+
+<key>UIBackgroundModes</key>
+<array>
+  <string>location</string>
+</array>
+
 	<key>UIAppFonts</key>
 	<array>
 		<string>AntDesign.ttf</string>

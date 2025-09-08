@@ -1,10 +1,28 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, Alert, ScrollView, Platform, Linking, KeyboardAvoidingView } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  StyleSheet,
+  Alert,
+  ScrollView,
+  Platform,
+  Linking,
+  KeyboardAvoidingView,
+} from "react-native";
 import * as ImagePicker from "react-native-image-picker";
 import Geolocation from "react-native-geolocation-service";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axiosInstance from "../TokenHandling/axiosInstance";
-import { check, request, PERMISSIONS, RESULTS, openSettings } from "react-native-permissions";
+import {
+  check,
+  request,
+  PERMISSIONS,
+  RESULTS,
+  openSettings,
+} from "react-native-permissions";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { stopLocationTracking } from "../Task/AttendanceHelpers";
 
@@ -37,17 +55,64 @@ export default function EndTask({ navigation }) {
     });
   }, []);
 
-  const pickImage = (setImage) => {
-    ImagePicker.launchImageLibrary({ mediaType: "photo" }, (res) => {
-      if (res.assets && res.assets.length > 0) {
-        const img = res.assets[0];
-        setImage({
-          uri: img.uri,
-          type: img.type || "image/jpeg",
-          name: img.fileName || "photo.jpg",
-        });
+  // ✅ Odometer photo (Back Camera)
+  const pickOdometerImage = () => {
+    ImagePicker.launchCamera(
+      {
+        mediaType: "photo",
+        cameraType: "back",
+        saveToPhotos: false,
+      },
+      (res) => {
+        if (res.didCancel) {
+          console.log("⚠️ User cancelled camera");
+          return;
+        }
+        if (res.errorMessage) {
+          console.log("Camera Error:", res.errorMessage);
+          Alert.alert("Camera Error", res.errorMessage);
+          return;
+        }
+        if (res.assets && res.assets.length > 0) {
+          const img = res.assets[0];
+          setOdometerImage({
+            uri: img.uri,
+            type: img.type || "image/jpeg",
+            name: img.fileName || "odometer_end.jpg",
+          });
+        }
       }
-    });
+    );
+  };
+
+  // ✅ Selfie photo (Front Camera)
+  const pickSelfieImage = () => {
+    ImagePicker.launchCamera(
+      {
+        mediaType: "photo",
+        cameraType: "front",
+        saveToPhotos: false,
+      },
+      (res) => {
+        if (res.didCancel) {
+          console.log("⚠️ User cancelled camera");
+          return;
+        }
+        if (res.errorMessage) {
+          console.log("Camera Error:", res.errorMessage);
+          Alert.alert("Camera Error", res.errorMessage);
+          return;
+        }
+        if (res.assets && res.assets.length > 0) {
+          const img = res.assets[0];
+          setSelfieImage({
+            uri: img.uri,
+            type: img.type || "image/jpeg",
+            name: img.fileName || "selfie_end.jpg",
+          });
+        }
+      }
+    );
   };
 
   const checkLocationPermission = async () => {
@@ -64,11 +129,9 @@ export default function EndTask({ navigation }) {
       const req = await request(permission);
       return req === RESULTS.GRANTED;
     } else if (result === RESULTS.BLOCKED) {
-      Alert.alert(
-        "Permission Required",
-        "Please enable location permission from Settings",
-        [{ text: "Open Settings", onPress: () => openSettings() }]
-      );
+      Alert.alert("Permission Required", "Please enable location permission from Settings", [
+        { text: "Open Settings", onPress: () => openSettings() },
+      ]);
       return false;
     }
     return false;
@@ -93,7 +156,7 @@ export default function EndTask({ navigation }) {
 
   const handleSubmit = async () => {
     if (!odometerImage || !selfieImage || !endLat || !endLng || !description || !userId) {
-      Alert.alert("Error", "Please fill all fields and select images.");
+      Alert.alert("Error", "Please fill all fields and click both photos.");
       return;
     }
 
@@ -115,7 +178,7 @@ export default function EndTask({ navigation }) {
       setEndLat("");
       setEndLng("");
       setDescription("");
-      stopLocationTracking()
+      stopLocationTracking();
     } catch (err) {
       console.log("Error:", err.response?.status, err.response?.data || err.message);
       console.log({ odometerImage, selfieImage, endLat, endLng, description, userId });
@@ -127,44 +190,42 @@ export default function EndTask({ navigation }) {
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={80} // header ki height jitna offset
+      keyboardVerticalOffset={80}
     >
       <ScrollView style={styles.container}>
-
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text>go back</Text>
         </TouchableOpacity>
 
+        {/* Odometer */}
         <Text style={styles.label}>
           Odometer Image <Icon name="asterisk" size={10} color="red" />
         </Text>
         {odometerImage && <Image source={{ uri: odometerImage.uri }} style={styles.preview} />}
-        <TouchableOpacity style={styles.button} onPress={() => pickImage(setOdometerImage)}>
-          <Text style={styles.buttonText}>Pick Odometer Photo</Text>
+        <TouchableOpacity style={styles.button} onPress={pickOdometerImage}>
+          <Text style={styles.buttonText}>Click Odometer Photo</Text>
         </TouchableOpacity>
 
-        {/* Selfie Image */}
+        {/* Selfie */}
         <Text style={styles.label}>
           Selfie Image <Icon name="asterisk" size={10} color="red" />
         </Text>
         {selfieImage && <Image source={{ uri: selfieImage.uri }} style={styles.preview} />}
-        <TouchableOpacity style={styles.button} onPress={() => pickImage(setSelfieImage)}>
-          <Text style={styles.buttonText}>Pick Selfie</Text>
+        <TouchableOpacity style={styles.button} onPress={pickSelfieImage}>
+          <Text style={styles.buttonText}>Click Selfie</Text>
         </TouchableOpacity>
 
         {/* End Latitude */}
         <Text style={styles.label}>
           End Latitude <Icon name="asterisk" size={10} color="red" />
         </Text>
-        <TextInput style={styles.input} value={endLat} onChangeText={setEndLat} editable={false} />
+        <TextInput style={styles.input} value={endLat} editable={false} />
 
         {/* End Longitude */}
         <Text style={styles.label}>
           End Longitude <Icon name="asterisk" size={10} color="red" />
         </Text>
-        <TextInput style={styles.input} value={endLng} onChangeText={setEndLng} editable={false} />
+        <TextInput style={styles.input} value={endLng} editable={false} />
 
         {/* Description */}
         <Text style={styles.label}>
@@ -236,5 +297,4 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 15,
   },
-
 });
