@@ -17,56 +17,104 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { API_URL } from '@env';
 import { ensureFreshToken } from "../TokenHandling/authUtils";
+import { afterLogin } from "../native/afterLogin"; // 👈 new import
+import { sendTokenToNative } from "../native/sendTokenToNative";
 
 const LoginScreen = ({ navigation }) => {
   const [employeeCode, setEmployeeCode] = useState('');
   const [password, setPassword] = useState('');
   const [secureText, setSecureText] = useState(true);
 
-  const handleLogin = async () => {
-    if (!employeeCode || !password) {
-      Alert.alert('Error', 'Please enter both fields');
-      return;
-    }
+  // const handleLogin = async () => {
+  //   if (!employeeCode || !password) {
+  //     Alert.alert('Error', 'Please enter both fields');
+  //     return;
+  //   }
 
-    try {
+  //   try {
       
-      const response = await axios.post(`${API_URL}/login/`, {
-        employee_code: employeeCode,
-        password: password,
+  //     const response = await axios.post(`${API_URL}/login/`, {
+  //       employee_code: employeeCode,
+  //       password: password,
+  //     });
+
+
+  //     const data = response.data;
+
+  //     await AsyncStorage.setItem('accessToken', data.access);
+  //     await AsyncStorage.setItem('refreshToken', data.refresh);
+  //     await ensureFreshToken();
+  //     await AsyncStorage.setItem('username', data.username);
+  //     await AsyncStorage.setItem('email', data.email);
+  //     await AsyncStorage.setItem('role', data.role);
+  //     await AsyncStorage.setItem('employee_code', data.employee_code);
+
+
+  //     if (data.is_employee_code_verified) {
+  //       // Alert.alert('Success', data.message || 'Login Successful');
+  //       navigation.replace('DrawerScreen');
+  //     } else {
+  //       navigation.navigate('OTPVerificationScreen', {
+  //         refreshToken: data.refresh,
+  //         employee_code: data.employee_code,
+  //       });
+
+  //     }
+
+  //   } catch (error) {
+  //     console.error('Login Error:', error.response?.data || error.message);
+  //     const errorMsg =
+  //       error.response?.data?.message || 'Invalid credentials or server error';
+  //     Alert.alert('Login Failed', errorMsg);
+  //   }
+  // };
+
+  const handleLogin = async () => {
+  if (!employeeCode || !password) {
+    Alert.alert("Error", "Please enter both fields");
+    return;
+  }
+
+  try {
+    const response = await axios.post(`${API_URL}/login/`, {
+      employee_code: employeeCode,
+      password: password,
+    });
+
+    const data = response.data;
+
+    // ✅ save tokens and other details
+    await AsyncStorage.setItem("accessToken", `Bearer ${data.access}`); // 👈 add Bearer prefix
+    await AsyncStorage.setItem("refreshToken", data.refresh);
+    await ensureFreshToken();
+    await AsyncStorage.setItem("username", data.username);
+    await AsyncStorage.setItem("email", data.email);
+    await AsyncStorage.setItem("role", data.role);
+    await AsyncStorage.setItem("employee_code", data.employee_code);
+
+    // ✅ native ko bhejo token + userId
+    //    (call after you saved accessToken in AsyncStorage)
+    
+  await AsyncStorage.setItem("accessToken", `Bearer ${data.access}`);
+await sendTokenToNative(data.id);   
+ await afterLogin(data.id);
+
+
+    if (data.is_employee_code_verified) {
+      navigation.replace("DrawerScreen");
+    } else {
+      navigation.navigate("OTPVerificationScreen", {
+        refreshToken: data.refresh,
+        employee_code: data.employee_code,
       });
-
-
-      const data = response.data;
-
-      await AsyncStorage.setItem('accessToken', data.access);
-      await AsyncStorage.setItem('refreshToken', data.refresh);
-      await ensureFreshToken();
-      await AsyncStorage.setItem('username', data.username);
-      await AsyncStorage.setItem('email', data.email);
-      await AsyncStorage.setItem('role', data.role);
-      await AsyncStorage.setItem('employee_code', data.employee_code);
-
-
-      if (data.is_employee_code_verified) {
-        // Alert.alert('Success', data.message || 'Login Successful');
-        navigation.replace('DrawerScreen');
-      } else {
-        navigation.navigate('OTPVerificationScreen', {
-          refreshToken: data.refresh,
-          employee_code: data.employee_code,
-        });
-
-      }
-
-    } catch (error) {
-      console.error('Login Error:', error.response?.data || error.message);
-      const errorMsg =
-        error.response?.data?.message || 'Invalid credentials or server error';
-      Alert.alert('Login Failed', errorMsg);
     }
-  };
-
+  } catch (error) {
+    console.error("Login Error:", error.response?.data || error.message);
+    const errorMsg =
+      error.response?.data?.message || "Invalid credentials or server error";
+    Alert.alert("Login Failed", errorMsg);
+  }
+};
 
   return (
     <SafeAreaView style={styles.container}>

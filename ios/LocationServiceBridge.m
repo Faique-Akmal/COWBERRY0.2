@@ -1,0 +1,9 @@
+#import <React/RCTBridgeModule.h>
+
+@interface RCT_EXTERN_MODULE(LocationServiceBridge, NSObject)
+RCT_EXTERN_METHOD(startTracking)
+RCT_EXTERN_METHOD(stopTracking)
+RCT_EXTERN_METHOD(updateInterval:(nonnull NSNumber *)seconds)
+RCT_EXTERN_METHOD(setAuthToken:(NSString *)token)
+RCT_EXTERN_METHOD(setUserId:(NSString *)uid)
+@end

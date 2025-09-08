@@ -13,6 +13,8 @@
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
 		47A2427732BBDD1E8A0C0D82 /* libPods-COWBERRY.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 979D565583A7368629DD3D91 /* libPods-COWBERRY.a */; };
 		5E24337364E64E095531F14E /* libPods-COWBERRY-COWBERRYTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0942686814F1142CF4D22ECD /* libPods-COWBERRY-COWBERRYTests.a */; };
+		6D1D14812E6ECE1A002B1F52 /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D1D147F2E6ECE1A002B1F52 /* LocationService.swift */; };
+		6D1D14822E6ECE1A002B1F52 /* LocationServiceBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = 6D1D14802E6ECE1A002B1F52 /* LocationServiceBridge.m */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		F7C5BD7F7703813F45387CB0 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 741BF1E3D3C10C404EE590EA /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
@@ -42,6 +44,8 @@
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = COWBERRY/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		419515635C3A5D4BB23B856D /* Pods-COWBERRY.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-COWBERRY.release.xcconfig"; path = "Target Support Files/Pods-COWBERRY/Pods-COWBERRY.release.xcconfig"; sourceTree = "<group>"; };
 		57A0E3955F7C0F9E666D5217 /* Pods-COWBERRY.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-COWBERRY.debug.xcconfig"; path = "Target Support Files/Pods-COWBERRY/Pods-COWBERRY.debug.xcconfig"; sourceTree = "<group>"; };
+		6D1D147F2E6ECE1A002B1F52 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
+		6D1D14802E6ECE1A002B1F52 /* LocationServiceBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LocationServiceBridge.m; sourceTree = "<group>"; };
 		6DE22EA52E6B029700CED8C2 /* COWBERRY.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = COWBERRY.entitlements; path = COWBERRY/COWBERRY.entitlements; sourceTree = "<group>"; };
 		741BF1E3D3C10C404EE590EA /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = COWBERRY/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = COWBERRY/LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -123,6 +127,8 @@
 		83CBB9F61A601CBA00E9B192 = {
 			isa = PBXGroup;
 			children = (
+				6D1D147F2E6ECE1A002B1F52 /* LocationService.swift */,
+				6D1D14802E6ECE1A002B1F52 /* LocationServiceBridge.m */,
 				13B07FAE1A68108700A75B9A /* COWBERRY */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				00E356EF1AD99517003FC87E /* COWBERRYTests */,
@@ -213,7 +219,7 @@
 						TestTargetID = 13B07F861A680F5B00A75B9A;
 					};
 					13B07F861A680F5B00A75B9A = {
-						LastSwiftMigration = 1120;
+						LastSwiftMigration = 1640;
 					};
 				};
 			};
@@ -303,13 +309,9 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-COWBERRY/Pods-COWBERRY-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
-			inputPaths = (
-			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-COWBERRY/Pods-COWBERRY-resources-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -324,13 +326,9 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-COWBERRY-COWBERRYTests/Pods-COWBERRY-COWBERRYTests-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
-			inputPaths = (
-			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-COWBERRY-COWBERRYTests/Pods-COWBERRY-COWBERRYTests-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -345,13 +343,9 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-COWBERRY-COWBERRYTests/Pods-COWBERRY-COWBERRYTests-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
-			inputPaths = (
-			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-COWBERRY-COWBERRYTests/Pods-COWBERRY-COWBERRYTests-resources-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -366,13 +360,9 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-COWBERRY/Pods-COWBERRY-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
-			inputPaths = (
-			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-COWBERRY/Pods-COWBERRY-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -416,6 +406,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6D1D14812E6ECE1A002B1F52 /* LocationService.swift in Sources */,
+				6D1D14822E6ECE1A002B1F52 /* LocationServiceBridge.m in Sources */,
 				13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */,
 				13B07FC11A68108700A75B9A /* main.m in Sources */,
 			);
@@ -614,7 +606,10 @@
 					"-DFOLLY_CFG_NO_COROUTINES=1",
 					"-DFOLLY_HAVE_CLOCK_GETTIME=1",
 				);
-				OTHER_LDFLAGS = "$(inherited)  ";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					" ",
+				);
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
@@ -687,7 +682,10 @@
 					"-DFOLLY_CFG_NO_COROUTINES=1",
 					"-DFOLLY_HAVE_CLOCK_GETTIME=1",
 				);
-				OTHER_LDFLAGS = "$(inherited)  ";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					" ",
+				);
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
 				USE_HERMES = true;
