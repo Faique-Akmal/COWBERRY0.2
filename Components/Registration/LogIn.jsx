@@ -9,7 +9,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert
+  Alert,
+  NativeModules
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -84,20 +85,31 @@ const LoginScreen = ({ navigation }) => {
     const data = response.data;
 
     // ✅ save tokens and other details
-    await AsyncStorage.setItem("accessToken", `Bearer ${data.access}`); // 👈 add Bearer prefix
-    await AsyncStorage.setItem("refreshToken", data.refresh);
-    await ensureFreshToken();
-    await AsyncStorage.setItem("username", data.username);
-    await AsyncStorage.setItem("email", data.email);
-    await AsyncStorage.setItem("role", data.role);
-    await AsyncStorage.setItem("employee_code", data.employee_code);
+await AsyncStorage.setItem("accessToken", `Bearer ${data.access}`);
+await AsyncStorage.setItem("refreshToken", data.refresh);
+await AsyncStorage.setItem("userId", String(data.id));
+await AsyncStorage.setItem("username", data.username);
+await AsyncStorage.setItem("email", data.email);
+await AsyncStorage.setItem("role", data.role);
+await AsyncStorage.setItem("employee_code", data.employee_code);
 
-    // ✅ native ko bhejo token + userId
-    //    (call after you saved accessToken in AsyncStorage)
+await LocationServiceBridge.setAuthToken(data.access);
+await LocationServiceBridge.setUserId(String(data.id));
+
+await afterLogin(data.id);
+await ensureFreshToken();
+
     
-  await AsyncStorage.setItem("accessToken", `Bearer ${data.access}`);
-await sendTokenToNative(data.id);   
- await afterLogin(data.id);
+ 
+// const { LocationServiceBridge } = NativeModules;
+// // start or update interval - example:
+// if (LocationServiceBridge && LocationServiceBridge.updateInterval) {
+//   await LocationServiceBridge.updateInterval(120); // or backend interval
+// }
+// if (LocationServiceBridge && LocationServiceBridge.startTracking) {
+//   await LocationServiceBridge.startTracking();
+// }
+
 
 
     if (data.is_employee_code_verified) {

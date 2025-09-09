@@ -4,67 +4,90 @@ import UIKit
 
 @objc(LocationServiceBridge)
 class LocationService: NSObject, CLLocationManagerDelegate {
-private let manager = CLLocationManager()
+  private let manager = CLLocationManager()
   private var sendIntervalSec: TimeInterval = 120
   private var lastSentAt: TimeInterval = 0
   private var authToken: String? = nil
   private var userId: String? = nil
 
+  // Keys for persistent storage
+  private let kAuthTokenKey = "location_auth_token"
+  private let kUserIdKey = "location_user_id"
+
   override init() {
     super.init()
-    NSLog("===DBG=== LocationService init called")
+    print("===DBG=== LocationService init called")
     manager.delegate = self
     manager.desiredAccuracy = kCLLocationAccuracyBest
     manager.allowsBackgroundLocationUpdates = true
     manager.pausesLocationUpdatesAutomatically = false
 
-    // make sure battery monitoring available if you use battery_level
     UIDevice.current.isBatteryMonitoringEnabled = true
+    print("===DBG=== Battery monitoring enabled")
+
+    // Load persisted token / userId if present
+    if let savedToken = UserDefaults.standard.string(forKey: kAuthTokenKey) {
+      self.authToken = savedToken
+      print("===DBG=== Loaded auth token from UserDefaults (prefix): \(savedToken.prefix(15))…")
+    } else {
+      print("===DBG=== No auth token in UserDefaults at init")
+    }
+
+    if let savedUid = UserDefaults.standard.string(forKey: kUserIdKey) {
+      self.userId = savedUid
+      print("===DBG=== Loaded userId from UserDefaults: \(savedUid)")
+    } else {
+      print("===DBG=== No userId in UserDefaults at init")
+    }
   }
 
   @objc func startTracking() {
-    NSLog("===DBG=== startTracking called")
+    print("===DBG=== startTracking called")
     let status = CLLocationManager.authorizationStatus()
-    NSLog("===DBG=== Current auth status: %d", status.rawValue)
+    print("===DBG=== Current auth status: \(status.rawValue)")
 
     if status == .notDetermined {
-      NSLog("===DBG=== Requesting Always Authorization…")
+      print("===DBG=== Requesting Always Authorization…")
       manager.requestAlwaysAuthorization()
-      // don't start updates yet; wait for authorization callback
     } else if status == .authorizedWhenInUse {
-      NSLog("===DBG=== Authorized When In Use - requesting Always Authorization")
+      print("===DBG=== Authorized When In Use - requesting Always Authorization")
       manager.requestAlwaysAuthorization()
     } else if status == .authorizedAlways {
-      NSLog("===DBG=== Authorized Always - starting location updates")
+      print("===DBG=== Authorized Always - starting location updates")
       manager.startUpdatingLocation()
-      // reset lastSentAt so first update can send immediately
       lastSentAt = 0
     } else {
-      NSLog("===DBG=== Authorization status is restricted/denied - instruct user to enable Always in Settings")
+      print("===DBG=== Authorization denied/restricted - ask user to enable Always in Settings")
     }
   }
 
   @objc func stopTracking() {
-    NSLog("===DBG=== stopTracking called")
+    print("===DBG=== stopTracking called -> stopping location updates")
     manager.stopUpdatingLocation()
   }
 
   @objc func updateInterval(_ seconds: NSNumber) {
     sendIntervalSec = seconds.doubleValue
-    NSLog("===DBG=== updateInterval set to %.0f sec", sendIntervalSec)
+    print("===DBG=== updateInterval set to \(sendIntervalSec) sec")
   }
 
-  @objc func setAuthToken(_ token: String) {
-    self.authToken = token
-    NSLog("===DBG=== setAuthToken received: %.10s…", token)
-  }
+  // Persist token so native can survive restarts
+@objc func setAuthToken(_ token: String) {
+  print("===DBG=== [Swift] setAuthToken called with prefix: \(token.prefix(20))…")
+  self.authToken = token
+  UserDefaults.standard.set(token, forKey: kAuthTokenKey)
+}
 
-  @objc func setUserId(_ uid: String) {
-    self.userId = uid
-    NSLog("===DBG=== setUserId received: %@", uid)
-  }
 
-  // iOS 14+ authorization change handler
+@objc func setUserId(_ uid: String) {
+  print("===DBG=== [Swift] setUserId called with: \(uid)")
+  self.userId = uid
+  UserDefaults.standard.set(uid, forKey: kUserIdKey)
+}
+
+
+
+
   func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
     var status: CLAuthorizationStatus
     if #available(iOS 14.0, *) {
@@ -72,24 +95,23 @@ private let manager = CLLocationManager()
     } else {
       status = CLLocationManager.authorizationStatus()
     }
-    NSLog("===DBG=== locationManagerDidChangeAuthorization: %d", status.rawValue)
+    print("===DBG=== locationManagerDidChangeAuthorization: \(status.rawValue)")
 
     if status == .authorizedAlways {
-      NSLog("===DBG=== Now authorizedAlways -> starting updates")
+      print("===DBG=== Now authorizedAlways -> starting updates")
       manager.startUpdatingLocation()
       lastSentAt = 0
     } else if status == .authorizedWhenInUse {
-      NSLog("===DBG=== Got WhenInUse - consider asking for Always")
-      // optional: prompt user to go to settings for Always
+      print("===DBG=== Got WhenInUse - should ask for Always")
     } else if status == .denied || status == .restricted {
-      NSLog("===DBG=== Authorization denied/restricted - prompt user to enable Always in Settings")
+      print("===DBG=== Authorization denied/restricted - user must enable in Settings")
     }
   }
 
-  // Fallback older method (still ok)
   func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
-    NSLog("===DBG=== didChangeAuthorization (legacy): %d", status.rawValue)
+    print("===DBG=== didChangeAuthorization (legacy): \(status.rawValue)")
     if status == .authorizedAlways {
+      print("===DBG=== AuthorizedAlways from legacy callback -> starting updates")
       manager.startUpdatingLocation()
       lastSentAt = 0
     }
@@ -97,28 +119,28 @@ private let manager = CLLocationManager()
 
   func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
     guard let loc = locations.last else {
-      NSLog("===DBG=== didUpdateLocations but no location found")
+      print("===DBG=== didUpdateLocations but no location found")
       return
     }
 
-    NSLog("===DBG=== didUpdateLocations lat: %.6f lng: %.6f accuracy: %.1f", loc.coordinate.latitude, loc.coordinate.longitude, loc.horizontalAccuracy)
+    print("===DBG=== didUpdateLocations lat: \(loc.coordinate.latitude), lng: \(loc.coordinate.longitude), accuracy: \(loc.horizontalAccuracy)")
 
     let now = Date().timeIntervalSince1970
     let elapsed = now - lastSentAt
-    NSLog("===DBG=== elapsed since lastSentAt: %.2f sec (threshold %.2f)", elapsed, sendIntervalSec)
+    print("===DBG=== elapsed since lastSentAt: \(String(format: "%.2f", elapsed)) sec (threshold \(sendIntervalSec))")
 
     if lastSentAt == 0 || elapsed >= sendIntervalSec {
       lastSentAt = now
-      NSLog("===DBG=== Interval passed or first send -> posting location")
+      print("===DBG=== Interval passed or first send -> posting location")
       postLocation(lat: loc.coordinate.latitude, lng: loc.coordinate.longitude)
     } else {
-      NSLog("===DBG=== Not sending yet")
+      print("===DBG=== Not sending yet (waiting for interval)")
     }
   }
 
   private func postLocation(lat: Double, lng: Double) {
     guard let url = URL(string: "https://stg-admin.cowberryindustries.com/api/locations/") else {
-      NSLog("===DBG=== Invalid URL")
+      print("===DBG=== Invalid URL")
       return
     }
 
@@ -128,52 +150,61 @@ private let manager = CLLocationManager()
 
     if let token = self.authToken, !token.isEmpty {
       req.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-      NSLog("===DBG=== Added Authorization header (token present)")
+      print("===DBG=== Added Authorization header (token present prefix): \(token.prefix(10))…")
     } else {
-      NSLog("===DBG=== No auth token set in native (will attempt without auth)")
+      print("===DBG=== No auth token set in native (⚠️ request will fail with 401)")
     }
 
-    // payload exactly like axiosInstance expects
     let batteryPct = Int((UIDevice.current.batteryLevel * 100).rounded())
+    print("===DBG=== Battery level: \(batteryPct)%")
+
     var payload: [String: Any] = [
       "latitude": String(format: "%.6f", lat),
       "longitude": String(format: "%.6f", lng),
       "battery_level": batteryPct
     ]
     if let uid = self.userId {
-      // if server expects integer, try converting
       if let intId = Int(uid) {
         payload["user"] = intId
+        print("===DBG=== Using numeric userId: \(intId)")
       } else {
         payload["user"] = uid
+        print("===DBG=== Using string userId: \(uid)")
       }
+    } else {
+      print("===DBG=== No userId set in native")
     }
 
     do {
       let body = try JSONSerialization.data(withJSONObject: payload, options: [])
       req.httpBody = body
-      NSLog("===DBG=== postLocation payload: %@", String(data: body, encoding: .utf8) ?? "<empty>")
+      print("===DBG=== postLocation payload JSON: \(String(data: body, encoding: .utf8) ?? "<empty>")")
     } catch {
-      NSLog("===DBG=== Failed to serialize payload: %@", error.localizedDescription)
+      print("===DBG=== Failed to serialize payload: \(error.localizedDescription)")
       return
     }
 
+    print("===DBG=== Executing URLSession dataTask…")
     let task = URLSession.shared.dataTask(with: req) { data, resp, err in
       if let err = err {
-        NSLog("===DBG=== postLocation error: %@", err.localizedDescription)
+        print("===DBG=== postLocation error: \(err.localizedDescription)")
         return
       }
       if let httpResp = resp as? HTTPURLResponse {
-        NSLog("===DBG=== postLocation response status: %d", httpResp.statusCode)
+        print("===DBG=== postLocation response status: \(httpResp.statusCode)")
+      } else {
+        print("===DBG=== postLocation no HTTPURLResponse received")
       }
       if let data = data, let str = String(data: data, encoding: .utf8) {
-        NSLog("===DBG=== postLocation response body: %@", str)
+        print("===DBG=== postLocation response body: \(str)")
+      } else {
+        print("===DBG=== postLocation empty response body")
       }
     }
     task.resume()
   }
 
   func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-    NSLog("===DBG=== didFailWithError: %@", error.localizedDescription)
+    print("===DBG=== didFailWithError: \(error.localizedDescription)")
   }
 }
