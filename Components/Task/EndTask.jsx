@@ -24,10 +24,8 @@ import {
   openSettings,
 } from "react-native-permissions";
 import Icon from "react-native-vector-icons/FontAwesome5";
-
 import { stopLocationTracking } from "../Task/AttendanceHelpers";
-
-import { stopNativeTracking, clearNativeAuth } from "../native/LocationBridge";
+import { stopNativeTracking } from "../native/LocationBridge";
 
 export default function EndTask({ navigation }) {
   const [odometerImage, setOdometerImage] = useState(null);
@@ -181,40 +179,25 @@ export default function EndTask({ navigation }) {
       setEndLat("");
       setEndLng("");
       setDescription("");
-      
-    // Stop tracking safely
-    try {
-      if (Platform.OS === "ios") {
-        // stop native
-        try {
-          stopNativeTracking();
-        } catch (e) {
-          console.warn("⚠️ stopNativeTracking failed:", e);
-        }
-        // clear native stored auth (optional)
-        try {
-          clearNativeAuth();
-        } catch (e) {
-          console.warn("⚠️ clearNativeAuth failed:", e);
-        }
-      } else {
-        // Android fallback to JS interval
-        try {
-          stopLocationTracking && stopLocationTracking();
-        } catch (e) {
-          console.warn("⚠️ stopLocationTracking (JS) failed:", e);
-        }
-      }
-    } catch (outerStopErr) {
-      console.warn("⚠️ Unexpected error while stopping tracking:", outerStopErr);
+     
+      // stop tracking (platform-aware)
+  try {
+    if (Platform.OS === "ios") {
+      stopNativeTracking();
+      console.log("===DBG=== stopNativeTracking called (iOS)");
+    } else {
+      stopLocationTracking && stopLocationTracking();
+      console.log("===DBG=== stopLocationTracking called (Android)");
     }
-
-  } catch (err) {
-    console.log("Error:", err.response?.status, err.response?.data || err.message);
-    console.log({ odometerImage, selfieImage, endLat, endLng, description, userId });
-    Alert.alert("Error", "Failed to end attendance.");
+  } catch (e) {
+    console.warn("⚠️ Error stopping tracking:", e);
   }
-
+  
+    } catch (err) {
+      console.log("Error:", err.response?.status, err.response?.data || err.message);
+      console.log({ odometerImage, selfieImage, endLat, endLng, description, userId });
+      Alert.alert("Error", "Failed to end attendance.");
+    }
   };
 
   return (
