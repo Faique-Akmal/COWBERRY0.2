@@ -20,6 +20,9 @@ import { API_URL } from '@env';
 import { ensureFreshToken } from "../TokenHandling/authUtils";
 import { afterLogin } from "../native/afterLogin"; // 👈 new import
 import { sendTokenToNative } from "../native/sendTokenToNative";
+// import { afterLogin } from '../native/afterLogin';
+
+const { LocationServiceBridge } = NativeModules;
 
 const LoginScreen = ({ navigation }) => {
   const [employeeCode, setEmployeeCode] = useState('');
@@ -85,7 +88,8 @@ const LoginScreen = ({ navigation }) => {
     const data = response.data;
 
     // ✅ save tokens and other details
-await AsyncStorage.setItem("accessToken", `Bearer ${data.access}`);
+// store RAW token (no "Bearer " prefix)
+await AsyncStorage.setItem("accessToken", data.access); // raw JWT
 await AsyncStorage.setItem("refreshToken", data.refresh);
 await AsyncStorage.setItem("userId", String(data.id));
 await AsyncStorage.setItem("username", data.username);
@@ -93,11 +97,44 @@ await AsyncStorage.setItem("email", data.email);
 await AsyncStorage.setItem("role", data.role);
 await AsyncStorage.setItem("employee_code", data.employee_code);
 
-await LocationServiceBridge.setAuthToken(data.access);
-await LocationServiceBridge.setUserId(String(data.id));
+// update native with raw token, refresh token & userId
+// send both tokens to native
+try {
+  if (LocationServiceBridge && LocationServiceBridge.setAuthToken) {
+    await LocationServiceBridge.setAuthToken(data.access);
+  }
+  if (LocationServiceBridge && LocationServiceBridge.setRefreshToken) {
+    await LocationServiceBridge.setRefreshToken(data.refresh);
+  }
+  if (LocationServiceBridge && LocationServiceBridge.setUserId) {
+    await LocationServiceBridge.setUserId(String(data.id));
+  }
+  console.log("===DBG=== Sent access & refresh token to native");
+} catch (e) {
+  console.warn("===DBG=== Failed to send tokens to native:", e);
+}
 
-await afterLogin(data.id);
-await ensureFreshToken();
+// continue app flow
+// continue app flow (safe)
+// try {
+//   if (typeof afterLogin === "function") {
+//     await afterLogin(data.id);
+//     console.log("===DBG=== afterLogin called successfully");
+//   } else {
+//     console.warn("===DBG=== afterLogin is not a function:", typeof afterLogin);
+//   }
+// } catch (err) {
+//   console.warn("===DBG=== afterLogin error", err);
+// }
+
+
+
+// optional: you can call ensureFreshToken() here but it's redundant immediately after login
+// because you just saved a fresh token from the server. If you keep it, make sure it DOES NOT
+// overwrite the fresh token erroneously.
+
+
+
 
     
  
