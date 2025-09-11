@@ -78,15 +78,11 @@
 //   UserDefaults.standard.set(token, forKey: kAuthTokenKey)
 // }
 
-
 // @objc func setUserId(_ uid: String) {
 //   print("===DBG=== [Swift] setUserId called with: \(uid)")
 //   self.userId = uid
 //   UserDefaults.standard.set(uid, forKey: kUserIdKey)
 // }
-
-
-
 
 //   func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
 //     var status: CLAuthorizationStatus
@@ -209,10 +205,10 @@
 //   }
 // }
 
-import Foundation
 import CoreLocation
-import UIKit
+import Foundation
 import Network
+import UIKit
 
 @objc(LocationServiceBridge)
 class LocationService: NSObject, CLLocationManagerDelegate {
@@ -229,6 +225,10 @@ class LocationService: NSObject, CLLocationManagerDelegate {
   private let kAuthFailCountKey = "location_auth_fail_count"
   private let kMaxAuthFailures: Int = 3
 
+    // change this to point to your local backend when testing
+  private let apiBase = "http://192.168.0.143:8001/api"
+
+
   // -------------------------
   // OFFLINE QUEUE
   // -------------------------
@@ -239,9 +239,10 @@ class LocationService: NSObject, CLLocationManagerDelegate {
     let docs = fm.urls(for: .documentDirectory, in: .userDomainMask).first!
     return docs.appendingPathComponent(offlineFilename)
   }
-  private let queueAccess = DispatchQueue(label: "com.cowberry.locations.queue", attributes: .concurrent)
+  private let queueAccess = DispatchQueue(
+    label: "com.cowberry.locations.queue", attributes: .concurrent)
   private let maxOfflineItems = 1000
-  private let syncBatchSize = 20 // send in small batches
+  private let syncBatchSize = 20  // send in small batches
 
   // -------------------------
   // NETWORK / SYNC STATE
@@ -266,7 +267,9 @@ class LocationService: NSObject, CLLocationManagerDelegate {
     // Load persisted token / userId if present
     if let savedToken = UserDefaults.standard.string(forKey: kAuthTokenKey) {
       self.authToken = savedToken
-      print("===DBG=== Loaded auth token from UserDefaults (prefix): \(savedToken.prefix(min(15, savedToken.count)))…")
+      print(
+        "===DBG=== Loaded auth token from UserDefaults (prefix): \(savedToken.prefix(min(15, savedToken.count)))…"
+      )
     } else {
       print("===DBG=== No auth token in UserDefaults at init")
     }
@@ -320,7 +323,8 @@ class LocationService: NSObject, CLLocationManagerDelegate {
   }
 
   @objc func setAuthToken(_ token: String) {
-    print("===DBG=== [Swift] setAuthToken called with prefix: \(token.prefix(min(20, token.count)))…")
+    print(
+      "===DBG=== [Swift] setAuthToken called with prefix: \(token.prefix(min(20, token.count)))…")
     self.authToken = token
     UserDefaults.standard.set(token, forKey: kAuthTokenKey)
     UserDefaults.standard.synchronize()
@@ -334,7 +338,9 @@ class LocationService: NSObject, CLLocationManagerDelegate {
   }
 
   @objc func setRefreshToken(_ refresh: String) {
-    print("===DBG=== [Swift] setRefreshToken called (prefix): \(refresh.prefix(min(10, refresh.count)))")
+    print(
+      "===DBG=== [Swift] setRefreshToken called (prefix): \(refresh.prefix(min(10, refresh.count)))"
+    )
     UserDefaults.standard.set(refresh, forKey: kRefreshTokenKey)
     UserDefaults.standard.synchronize()
   }
@@ -368,7 +374,9 @@ class LocationService: NSObject, CLLocationManagerDelegate {
     }
   }
 
-  func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
+  func locationManager(
+    _ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus
+  ) {
     print("===DBG=== didChangeAuthorization (legacy): \(status.rawValue)")
     if status == .authorizedAlways {
       print("===DBG=== AuthorizedAlways from legacy callback -> starting updates")
@@ -383,7 +391,9 @@ class LocationService: NSObject, CLLocationManagerDelegate {
       return
     }
 
-    print("===DBG=== didUpdateLocations lat: \(loc.coordinate.latitude), lng: \(loc.coordinate.longitude), accuracy: \(loc.horizontalAccuracy)")
+    print(
+      "===DBG=== didUpdateLocations lat: \(loc.coordinate.latitude), lng: \(loc.coordinate.longitude), accuracy: \(loc.horizontalAccuracy)"
+    )
 
     let now = Date().timeIntervalSince1970
     let elapsed = now - lastSentAt
@@ -410,15 +420,17 @@ class LocationService: NSObject, CLLocationManagerDelegate {
     let latitude: String
     let longitude: String
     let battery_level: Int
-    let user: String? // storing as string to keep JSON simple
-    let ts: TimeInterval
+    let user: String?
+    let ts: TimeInterval  // original capture time as epoch seconds (kept for compatibility)
+    let vehicle_type: String?  // optional, backend expects this
   }
 
   private func postLocation(lat: Double, lng: Double) {
-    guard let url = URL(string: "https://stg-admin.cowberryindustries.com/api/locations/") else {
-      print("===DBG=== Invalid URL")
-      return
-    }
+   guard let url = URL(string: "\(self.apiBase)/locations/") else {
+  print("===DBG=== Invalid URL")
+  return
+}
+
 
     var req = URLRequest(url: url)
     req.httpMethod = "POST"
@@ -426,7 +438,9 @@ class LocationService: NSObject, CLLocationManagerDelegate {
 
     if let token = self.authToken, !token.isEmpty {
       req.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-      print("===DBG=== Added Authorization header (token present prefix): \(token.prefix(min(10, token.count)))…")
+      print(
+        "===DBG=== Added Authorization header (token present prefix): \(token.prefix(min(10, token.count)))…"
+      )
     } else {
       print("===DBG=== No auth token set in native (⚠️ request will fail with 401)")
     }
@@ -434,10 +448,15 @@ class LocationService: NSObject, CLLocationManagerDelegate {
     let batteryPctRaw = UIDevice.current.batteryLevel
     let batteryPct = batteryPctRaw >= 0 ? Int((batteryPctRaw * 100).rounded()) : 0
 
+    let now = Date().timeIntervalSince1970
+    let timestampIso = iso8601String(from: now)
+
     var payload: [String: Any] = [
+      "timestamp": timestampIso,
       "latitude": String(format: "%.6f", lat),
       "longitude": String(format: "%.6f", lng),
-      "battery_level": batteryPct
+      "battery_level": batteryPct,
+      "vehicle_type": "walk",  // or use value coming from JS/native if available
     ]
     if let uid = self.userId {
       if let intId = Int(uid) {
@@ -447,8 +466,6 @@ class LocationService: NSObject, CLLocationManagerDelegate {
         payload["user"] = uid
         print("===DBG=== Using string userId: \(uid)")
       }
-    } else {
-      print("===DBG=== No userId set in native")
     }
 
     do {
@@ -464,7 +481,8 @@ class LocationService: NSObject, CLLocationManagerDelegate {
     // If no network, save offline directly
     if !isNetworkAvailable {
       print("===DBG=== Network down -> saving location offline")
-      saveOfflineLocation(lat: lat, lng: lng, battery: batteryPct)
+      // pass nil because we don't have a vehicle_type from JS/native at this point
+      self.saveOfflineLocation(lat: lat, lng: lng, battery: batteryPct, vehicleType: nil)
       return
     }
 
@@ -474,7 +492,7 @@ class LocationService: NSObject, CLLocationManagerDelegate {
 
       if let err = err {
         print("===DBG=== postLocation error: \(err.localizedDescription) -> saving offline")
-        self.saveOfflineLocation(lat: lat, lng: lng, battery: batteryPct)
+        self.saveOfflineLocation(lat: lat, lng: lng, battery: batteryPct, vehicleType: nil)
         return
       }
       if let httpResp = resp as? HTTPURLResponse {
@@ -486,12 +504,12 @@ class LocationService: NSObject, CLLocationManagerDelegate {
         }
         if !(200...299).contains(httpResp.statusCode) {
           print("===DBG=== non-2xx response -> saving offline")
-          self.saveOfflineLocation(lat: lat, lng: lng, battery: batteryPct)
+          self.saveOfflineLocation(lat: lat, lng: lng, battery: batteryPct, vehicleType: nil)
           return
         }
       } else {
         print("===DBG=== postLocation no HTTPURLResponse received -> saving offline")
-        self.saveOfflineLocation(lat: lat, lng: lng, battery: batteryPct)
+        self.saveOfflineLocation(lat: lat, lng: lng, battery: batteryPct, vehicleType: nil)
         return
       }
       if let data = data, let str = String(data: data, encoding: .utf8) {
@@ -549,7 +567,8 @@ class LocationService: NSObject, CLLocationManagerDelegate {
       return
     }
 
-    guard let url = URL(string: "https://stg-admin.cowberryindustries.com/api/token/refresh/") else {
+    guard let url = URL(string: "https://stg-admin.cowberryindustries.com/api/token/refresh/")
+    else {
       print("===DBG=== performTokenRefresh: invalid URL")
       completion(false)
       return
@@ -569,7 +588,10 @@ class LocationService: NSObject, CLLocationManagerDelegate {
 
     print("===DBG=== Performing token refresh (native)…")
     let task = URLSession.shared.dataTask(with: req) { [weak self] data, resp, err in
-      guard let self = self else { completion(false); return }
+      guard let self = self else {
+        completion(false)
+        return
+      }
 
       if let err = err {
         print("===DBG=== performTokenRefresh error:", err.localizedDescription)
@@ -587,8 +609,9 @@ class LocationService: NSObject, CLLocationManagerDelegate {
         return
       }
       guard let data = data,
-            let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
-            let newAccess = (json["access"] as? String) else {
+        let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
+        let newAccess = (json["access"] as? String)
+      else {
         print("===DBG=== performTokenRefresh: parse failed")
         completion(false)
         return
@@ -598,10 +621,21 @@ class LocationService: NSObject, CLLocationManagerDelegate {
       UserDefaults.standard.set(newAccess, forKey: self.kAuthTokenKey)
       UserDefaults.standard.synchronize()
       self.authToken = newAccess
-      print("===DBG=== performTokenRefresh: new access token saved (prefix): \(newAccess.prefix(min(10, newAccess.count)))…")
+      print(
+        "===DBG=== performTokenRefresh: new access token saved (prefix): \(newAccess.prefix(min(10, newAccess.count)))…"
+      )
       completion(true)
     }
     task.resume()
+  }
+
+  // helper to produce ISO-8601 timestamp strings (UTC, fractional seconds)
+  private func iso8601String(from timeInterval: TimeInterval) -> String {
+    let date = Date(timeIntervalSince1970: timeInterval)
+    let fmt = ISO8601DateFormatter()
+    fmt.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    fmt.timeZone = TimeZone(secondsFromGMT: 0)
+    return fmt.string(from: date) // e.g. 2025-09-11T04:32:27.640Z
   }
 
   // -------------------------
@@ -629,25 +663,29 @@ class LocationService: NSObject, CLLocationManagerDelegate {
     do {
       let data = try JSONEncoder().encode(items)
       try data.write(to: self.offlineQueueURL, options: .atomic)
-      print("===DBG=== writeOfflineQueueToDisk saved count:", items.count, " path:", offlineQueueURL.path)
+      print(
+        "===DBG=== writeOfflineQueueToDisk saved count:", items.count, " path:",
+        offlineQueueURL.path)
     } catch {
       print("===DBG=== writeOfflineQueueToDisk error:", error)
     }
   }
 
-  private func saveOfflineLocation(lat: Double, lng: Double, battery: Int) {
+  private func saveOfflineLocation(
+    lat: Double, lng: Double, battery: Int, vehicleType: String? = "walk"
+  ) {
     let loc = OfflineLocation(
       latitude: String(format: "%.6f", lat),
       longitude: String(format: "%.6f", lng),
       battery_level: battery,
       user: self.userId,
-      ts: Date().timeIntervalSince1970
+      ts: Date().timeIntervalSince1970,
+      vehicle_type: vehicleType
     )
 
     queueAccess.async(flags: .barrier) {
       var items = self.loadOfflineQueueFromDisk()
       if items.count >= self.maxOfflineItems {
-        // drop oldest to keep cap
         items.removeFirst(items.count - (self.maxOfflineItems - 1))
       }
       items.append(loc)
@@ -688,98 +726,97 @@ class LocationService: NSObject, CLLocationManagerDelegate {
         DispatchQueue.main.async { completion?() }
       }
 
-      func sendOne(_ idx: Int) {
-        guard idx < batch.count else {
-          // all items in this batch sent successfully -> remove them from disk
-          self.queueAccess.async(flags: .barrier) {
-            var remaining = self.loadOfflineQueueFromDisk()
-            if remaining.count >= batchCount {
-              remaining.removeFirst(batchCount)
-            } else {
-              remaining.removeAll()
-            }
-            self.writeOfflineQueueToDisk(remaining)
-            print("===DBG=== synced batch of \(batchCount). remaining = \(remaining.count)")
-            if !remaining.isEmpty && self.isNetworkAvailable {
-              DispatchQueue.global().asyncAfter(deadline: .now() + 0.5) {
-                self.syncOfflineLocations(completion: completion)
-              }
-            } else {
-              finishSync(successfullyRemoved: true)
-            }
-          }
-          return
-        }
+   func sendOne(_ idx: Int) {
+  guard idx < batch.count else {
+    // existing removal code...
+    return
+  }
 
-        let it = batch[idx]
-        var payload: [String: Any] = [
-          "latitude": it.latitude,
-          "longitude": it.longitude,
-          "battery_level": it.battery_level
-        ]
-        if let uid = it.user, let i = Int(uid) {
-          payload["user"] = i
-        } else if let uid = it.user {
-          payload["user"] = uid
-        }
+  let it = batch[idx]
+  // <-- use explicit self inside closure
+  let timestampIso = self.iso8601String(from: it.ts)
 
-        guard let url = URL(string: "https://stg-admin.cowberryindustries.com/api/locations/") else {
-          print("===DBG=== syncOfflineLocations invalid URL")
+  var payload: [String: Any] = [
+    "timestamp": timestampIso,
+    "latitude": it.latitude,
+    "longitude": it.longitude,
+    "battery_level": it.battery_level,
+  ]
+  if let v = it.vehicle_type {
+    payload["vehicle_type"] = v
+  }
+  if let uid = it.user, let i = Int(uid) {
+    payload["user"] = i
+  } else if let uid = it.user {
+    payload["user"] = uid
+  }
+
+ guard let url = URL(string: "\(self.apiBase)/locations/") else {
+  print("===DBG=== syncOfflineLocations invalid URL")
+  finishSync(successfullyRemoved: false)
+  return
+}
+
+
+  var req = URLRequest(url: url)
+  req.httpMethod = "POST"
+  req.addValue("application/json", forHTTPHeaderField: "Content-Type")
+  if let token = self.authToken {
+    req.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+  }
+
+  do {
+    req.httpBody = try JSONSerialization.data(withJSONObject: payload, options: [])
+  } catch {
+    print("===DBG=== syncOfflineLocations JSON serialize error for item \(idx):", error)
+    finishSync(successfullyRemoved: false)
+    return
+  }
+
+  let task = URLSession.shared.dataTask(with: req) { [weak self] data, resp, err in
+    guard let self = self else {
+      finishSync(successfullyRemoved: false)
+      return
+    }
+
+    if let err = err {
+      print("===DBG=== syncOfflineLocations network error for item \(idx):", err.localizedDescription)
+      finishSync(successfullyRemoved: false)
+      return
+    }
+
+    if let httpResp = resp as? HTTPURLResponse {
+      print("===DBG=== syncOfflineLocations response status: \(httpResp.statusCode) for item \(idx)")
+      if httpResp.statusCode == 401 {
+        print("===DBG=== syncOfflineLocations got 401 -> refreshing token")
+        self.performTokenRefresh { success in
+          print("===DBG=== syncOfflineLocations refresh result: \(success)")
           finishSync(successfullyRemoved: false)
-          return
         }
-
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        if let token = self.authToken { req.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
-
-        do {
-          req.httpBody = try JSONSerialization.data(withJSONObject: payload, options: [])
-        } catch {
-          print("===DBG=== syncOfflineLocations JSON serialize error for item \(idx):", error)
-          finishSync(successfullyRemoved: false)
-          return
-        }
-
-        let task = URLSession.shared.dataTask(with: req) { data, resp, err in
-          if let err = err {
-            print("===DBG=== syncOfflineLocations network error for item \(idx):", err.localizedDescription)
-            finishSync(successfullyRemoved: false)
-            return
-          }
-
-          if let httpResp = resp as? HTTPURLResponse {
-            print("===DBG=== syncOfflineLocations response status: \(httpResp.statusCode) for item \(idx)")
-            if httpResp.statusCode == 401 {
-              print("===DBG=== syncOfflineLocations got 401 -> refreshing token")
-              self.performTokenRefresh { success in
-                print("===DBG=== syncOfflineLocations refresh result: \(success)")
-                finishSync(successfullyRemoved: false)
-              }
-              return
-            }
-            if !(200...299).contains(httpResp.statusCode) {
-              if let d = data, let bodyStr = String(data: d, encoding: .utf8) {
-                print("===DBG=== syncOfflineLocations server error body for item \(idx): \(bodyStr)")
-              }
-              print("===DBG=== syncOfflineLocations non-2xx for item \(idx) -> abort batch and retry later")
-              finishSync(successfullyRemoved: false)
-              return
-            }
-          } else {
-            print("===DBG=== syncOfflineLocations no HTTPURLResponse for item \(idx) -> abort")
-            finishSync(successfullyRemoved: false)
-            return
-          }
-
-          // success -> small gap (0.1s) then next
-          DispatchQueue.global().asyncAfter(deadline: .now() + 0.1) {
-            sendOne(idx + 1)
-          }
-        }
-        task.resume()
+        return
       }
+      if !(200...299).contains(httpResp.statusCode) {
+        if let d = data, let bodyStr = String(data: d, encoding: .utf8) {
+          print("===DBG=== syncOfflineLocations server error body for item \(idx): \(bodyStr)")
+        }
+        print("===DBG=== syncOfflineLocations non-2xx for item \(idx) -> abort batch and retry later")
+        finishSync(successfullyRemoved: false)
+        return
+      }
+    } else {
+      print("===DBG=== syncOfflineLocations no HTTPURLResponse for item \(idx) -> abort")
+      finishSync(successfullyRemoved: false)
+      return
+    }
+
+    // success -> small gap (0.1s) then next
+    DispatchQueue.global().asyncAfter(deadline: .now() + 0.1) {
+      sendOne(idx + 1)
+    }
+  }
+  task.resume()
+}
+
 
       // start sending
       sendOne(0)
@@ -829,8 +866,6 @@ class LocationService: NSObject, CLLocationManagerDelegate {
     }
   }
 }
-
-
 
 
 // exect timestam ke sath post
@@ -970,7 +1005,6 @@ class LocationService: NSObject, CLLocationManagerDelegate {
 //   UserDefaults.standard.set(trimmed, forKey: kUserIdKey)
 //   UserDefaults.standard.synchronize()
 // }
-
 
 //   @objc func setRefreshToken(_ refresh: String) {
 //     print("===DBG=== [Swift] setRefreshToken called (prefix): \(refresh.prefix(min(10, refresh.count)))")
@@ -1114,7 +1148,6 @@ class LocationService: NSObject, CLLocationManagerDelegate {
 // } else {
 //   print("===DBG=== No valid userId set — not adding 'user' to payload")
 // }
-
 
 //     // add vehicle_type only if available
 //     if let vehicle = self.currentVehicleType, !vehicle.isEmpty {
@@ -1518,5 +1551,3 @@ class LocationService: NSObject, CLLocationManagerDelegate {
 //     }
 //   }
 // }
-
-
