@@ -24,10 +24,10 @@ import {
   openSettings,
 } from "react-native-permissions";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { stopLocationTracking } from "../Task/AttendanceHelpers";
+import { stopLocationTracking } from "./AttendanceHelpers";
 import { stopNativeTracking } from "../native/LocationBridge";
 
-export default function EndTask({ navigation }) {
+export default function AttendanceEnd({ navigation }) {
   const [odometerImage, setOdometerImage] = useState(null);
   const [selfieImage, setSelfieImage] = useState(null);
   const [endLat, setEndLat] = useState("");
@@ -179,20 +179,26 @@ export default function EndTask({ navigation }) {
       setEndLat("");
       setEndLng("");
       setDescription("");
-     
+
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "AttendanceStart" }],
+      });
+
+
       // stop tracking (platform-aware)
-  try {
-    if (Platform.OS === "ios") {
-      stopNativeTracking();
-      console.log("===DBG=== stopNativeTracking called (iOS)");
-    } else {
-      stopLocationTracking && stopLocationTracking();
-      console.log("===DBG=== stopLocationTracking called (Android)");
-    }
-  } catch (e) {
-    console.warn("⚠️ Error stopping tracking:", e);
-  }
-  
+      try {
+        if (Platform.OS === "ios") {
+          stopNativeTracking();
+          console.log("===DBG=== stopNativeTracking called (iOS)");
+        } else {
+          stopLocationTracking && stopLocationTracking();
+          console.log("===DBG=== stopLocationTracking called (Android)");
+        }
+      } catch (e) {
+        console.warn("⚠️ Error stopping tracking:", e);
+      }
+
     } catch (err) {
       console.log("Error:", err.response?.status, err.response?.data || err.message);
       console.log({ odometerImage, selfieImage, endLat, endLng, description, userId });
@@ -207,9 +213,9 @@ export default function EndTask({ navigation }) {
       keyboardVerticalOffset={80}
     >
       <ScrollView style={styles.container}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        {/* <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text>go back</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         {/* Odometer */}
         <Text style={styles.label}>
@@ -253,10 +259,10 @@ export default function EndTask({ navigation }) {
         />
 
         <TouchableOpacity style={styles.submitBtn} onPress={onPressEndAttendance}>
-          <Text style={styles.submitText}>End Attendance</Text>
+          <Text style={styles.submitText}>Attendance End</Text>
         </TouchableOpacity>
 
-        {endLat && endLng ? (
+        {/* {endLat && endLng ? (
           <TouchableOpacity
             style={styles.mapLinkBtn}
             onPress={() =>
@@ -265,7 +271,8 @@ export default function EndTask({ navigation }) {
           >
             <Text style={styles.mapLinkText}>📍 View Location on Google Maps</Text>
           </TouchableOpacity>
-        ) : null}
+        ) : null} */}
+
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -296,6 +303,7 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 8,
     marginTop: 20,
+    marginBottom:35,
     alignItems: "center",
   },
   submitText: { color: "#fff", fontWeight: "700", fontSize: 16 },

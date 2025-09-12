@@ -20,16 +20,16 @@ const Attendance = ({ navigation }) => {
 
 
       <View style={styles.overlay}>
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={styles.button}
-          onPress={() => navigation.navigate('StartTask')}
+          onPress={() => navigation.navigate('AttendanceStart')}
         >
           <Text style={styles.buttonText}>Start Attendance Task</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         <TouchableOpacity
           style={[styles.button, styles.endButton]}
-          onPress={() => navigation.navigate('EndTask')}
+          onPress={() => navigation.navigate('AttendanceEnd')}
         >
           <Text style={styles.buttonText}>End Attendance Task</Text>
         </TouchableOpacity>

@@ -7,8 +7,7 @@ import { startTokenRefreshInterval } from './Components/TokenHandling/tokenRefre
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeModules } from 'react-native';
 
-console.log("===DBG=== NativeModules keys:", Object.keys(NativeModules));
-console.log("===DBG=== LocationServiceBridge raw:", NativeModules.LocationServiceBridge);
+
 
 const { LocationServiceBridge } = NativeModules;
 
