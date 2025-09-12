@@ -41,31 +41,24 @@ const CustomDrawer = (props) => {
   }, []);
 
 
-  const handleLogout = async () => {
-    try {
-      const token = await AsyncStorage.getItem('accessToken');
+const handleLogout = async () => {
+  try {
+    await axiosInstance.post('/logout/', {});  
 
-      await axios.post(
-        `${API_URL}/logout/`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+    await AsyncStorage.clear();
 
-      await AsyncStorage.clear();
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'LogIn' }],
-      });
-      Alert.alert('Success', 'You have been logged out.');
-    } catch (error) {
-      console.error('Logout error:', error);
-      Alert.alert('Error', 'Logout failed. Please try again.');
-    }
-  };
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'LogIn' }],
+    });
+
+    Alert.alert('Success', 'You have been logged out.');
+  } catch (error) {
+    console.error('Logout error:', error.response?.data || error.message);
+    Alert.alert('Error', 'Logout failed. Please try again.');
+  }
+};
+
 
   return (
 

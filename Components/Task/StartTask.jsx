@@ -265,7 +265,7 @@ const handleSubmit = async () => {
         />
 
         <TouchableOpacity style={styles.submitBtn} onPress={onPressStartAttendance}>
-          <Text style={styles.submitText}>Start Attendance</Text>
+          <Text style={styles.submitText}>Attendance Start</Text>
         </TouchableOpacity>
 
         {startLat && startLng ? (
