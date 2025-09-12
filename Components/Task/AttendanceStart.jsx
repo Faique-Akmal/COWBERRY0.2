@@ -1,4 +1,3 @@
-// StartTask.js (updated)
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -18,17 +17,22 @@ import Geolocation from "react-native-geolocation-service";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axiosInstance from "../TokenHandling/axiosInstance";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { fetchMe, fetchLocationConfig } from "../Task/AttendanceHelpers";
+import { fetchMe, fetchLocationConfig } from "./AttendanceHelpers";
 // make sure this path matches where you put permissions.js
 import { requestPermissions } from "../utils/permissions";
+import { useNavigation } from '@react-navigation/native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
-export default function StartTask({ navigation }) {
+
+export default function AttendanceStart() {
   const [odometerImage, setOdometerImage] = useState(null);
   const [selfieImage, setSelfieImage] = useState(null);
   const [startLat, setStartLat] = useState("");
   const [startLng, setStartLng] = useState("");
   const [description, setDescription] = useState("");
   const [userId, setUserId] = useState("");
+
+  const navigation = useNavigation();
 
   const formatCoordinate = (value) => {
     return parseFloat(value).toFixed(6); // max 6 decimal places
@@ -162,54 +166,78 @@ export default function StartTask({ navigation }) {
     );
   };
 
-const handleSubmit = async () => {
-  console.log("Submitting data...");
-  console.log("Current state values:", {
-    odometerImage,
-    selfieImage,
-    startLat,
-    startLng,
-    description,
-    userId,
-  });
-
-  if (!odometerImage || !selfieImage || !startLat || !startLng || !description || !userId) {
-    Alert.alert("Error", "Please fill all fields and click both photos.");
-    return;
-  }
-
-  const formData = new FormData();
-  formData.append("odometer_image", odometerImage);
-  formData.append("selfie_image", selfieImage);
-  formData.append("start_lat", startLat);
-  formData.append("start_lng", startLng);
-  formData.append("description", description);
-  formData.append("user", userId);
-
-  try {
-    const res = await axiosInstance.post("/attendance-start/", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
+  const handleSubmit = async () => {
+    console.log("Submitting data...");
+    console.log("Current state values:", {
+      odometerImage,
+      selfieImage,
+      startLat,
+      startLng,
+      description,
+      userId,
     });
-    console.log("API Response:", res.data);
 
-    Alert.alert("Success", "Attendance started successfully!");
-    setOdometerImage(null);
-    setSelfieImage(null);
-    setStartLat("");
-    setStartLng("");
-    setDescription("");
+    if (!odometerImage || !selfieImage || !startLat || !startLng || !description || !userId) {
+      Alert.alert("Error", "Please fill all fields and click both photos.");
+      return;
+    }
 
-    // ✅ Update local user
-    await fetchMe();
+    const formData = new FormData();
+    formData.append("odometer_image", odometerImage);
+    formData.append("selfie_image", selfieImage);
+    formData.append("start_lat", startLat);
+    formData.append("start_lng", startLng);
+    formData.append("description", description);
+    formData.append("user", userId);
 
-    // ✅ Fetch backend interval & start native background service
-    await fetchLocationConfig();
+    try {
+      const res = await axiosInstance.post("/attendance-start/", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      console.log("API Response:", res.data);
 
-  } catch (err) {
-    console.log("API Error:", err.response?.data || err.message);
-    Alert.alert("Error", "Failed to start attendance.");
-  }
-};
+      Alert.alert("Success", "Attendance started successfully!");
+      setOdometerImage(null);
+      setSelfieImage(null);
+      setStartLat("");
+      setStartLng("");
+      setDescription("");
+
+      // ✅ Update local user
+      await fetchMe();
+
+      // ✅ Fetch backend interval & start native background service
+      await fetchLocationConfig();
+
+      // ✅ Navigate to Dashboard after success
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "DrawerScreen" }],
+      });
+
+    } catch (err) {
+      console.log("API Error:", err.response?.data || err.message);
+      Alert.alert("Error", "Failed to start attendance.");
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await axiosInstance.post('/logout/', {});
+
+      await AsyncStorage.clear();
+
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'LogIn' }],
+      });
+
+      Alert.alert('Success', 'You have been logged out.');
+    } catch (error) {
+      console.error('Logout error:', error.response?.data || error.message);
+      Alert.alert('Error', 'Logout failed. Please try again.');
+    }
+  };
 
 
   return (
@@ -219,9 +247,9 @@ const handleSubmit = async () => {
       keyboardVerticalOffset={80}
     >
       <ScrollView style={styles.container}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        {/* <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text>go back</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         {/* Odometer */}
         <Text style={styles.label}>
@@ -267,7 +295,7 @@ const handleSubmit = async () => {
         <TouchableOpacity style={styles.submitBtn} onPress={onPressStartAttendance}>
           <Text style={styles.submitText}>Attendance Start</Text>
         </TouchableOpacity>
-
+{/* 
         {startLat && startLng ? (
           <TouchableOpacity
             style={styles.mapLinkBtn}
@@ -277,7 +305,20 @@ const handleSubmit = async () => {
           >
             <Text style={styles.mapLinkText}>📍 View Location on Google Maps</Text>
           </TouchableOpacity>
-        ) : null}
+        ) : null} */}
+
+        {/* Logout */}
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={[styles.logoutButton, styles.logoutHoverEffect]}
+            onPress={handleLogout}>
+            <View style={styles.logoutIconWrapper}>
+              <Ionicons name="log-out-outline" size={22} color="#D32F2F" />
+            </View>
+            <Text style={styles.logoutText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
+
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -322,5 +363,32 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "600",
     fontSize: 15,
+  },
+  footer: {
+   marginTop:15,
+   marginBottom:35
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    // backgroundColor: 'rgba(211, 47, 47, 0.1)',
+  },
+  logoutHoverEffect: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#D32F2F',
+  },
+  logoutIconWrapper: {
+    backgroundColor: 'rgba(211, 47, 47, 0.2)',
+    borderRadius: 6,
+    padding: 5,
+  },
+  logoutText: {
+    color: '#D32F2F',
+    fontSize: 16,
+    fontWeight: '500',
+    marginLeft: 5,
   },
 });

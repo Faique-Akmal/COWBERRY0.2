@@ -20,7 +20,7 @@ import { API_URL } from '@env';
 import { ensureFreshToken } from "../TokenHandling/authUtils";
 import { afterLogin } from "../native/afterLogin"; // 👈 new import
 import { sendTokenToNative } from "../native/sendTokenToNative";
-// import { afterLogin } from '../native/afterLogin';
+
 
 const { LocationServiceBridge } = NativeModules;
 
