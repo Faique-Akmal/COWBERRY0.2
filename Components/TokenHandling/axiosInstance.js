@@ -45,7 +45,7 @@
 // export default axiosInstance;
 
 
-// src/TokenHandling/axiosInstance.js
+// =======================src/TokenHandling/axiosInstance.js======================
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import jwtDecode from "jwt-decode";
@@ -60,7 +60,7 @@ const axiosInstance = axios.create({
 // helper to normalize token (raw)
 const normalizeToken = (raw) => {
   if (!raw) return null;
-  return raw.startsWith("Bearer ") ? raw.replace(/^Bearer\s+/i, "") : raw;
+  return raw.startsWith("Bearer") ? raw.replace(/^Bearer\s+/i, "") : raw;
 };
 
 const getRawToken = async () => {
