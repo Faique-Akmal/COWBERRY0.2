@@ -57,7 +57,9 @@
     android:foregroundServiceType="location"
     android:exported="false" />
 
-<receiver android:name="com.cowberry.location.LocationReceiver" >
+<receiver android:name="com.cowberry.location.LocationReceiver" 
+android:exported="true"
+>
   <intent-filter>
     <action android:name="com.cowberry.UPDATE_INTERVAL" />
   </intent-filter>
