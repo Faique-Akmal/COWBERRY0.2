@@ -76,6 +76,12 @@
   <string>location</string>
 </array>
 
+<key>UIFileSharingEnabled</key>
+<true/>
+<key>LSSupportsOpeningDocumentsInPlace</key>
+<true/>
+
+
 	<key>UIAppFonts</key>
 	<array>
 		<string>AntDesign.ttf</string>
