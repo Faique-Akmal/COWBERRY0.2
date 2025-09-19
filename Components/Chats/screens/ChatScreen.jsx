@@ -33,6 +33,8 @@ import { launchImageLibrary } from "react-native-image-picker";
 import Geolocation from "react-native-geolocation-service";
 import RNFS from "react-native-fs";
 import { Video as VideoCompressor } from "react-native-compressor";
+import AnimatedBubbleLoading from "./DotLoader";
+import DotLoader from "./DotLoader";
 
 const UPLOAD_PATH = "/upload/";
 const MAX_VIDEO_BYTES = 5 * 1024 * 1024; // 5 MB target
@@ -407,9 +409,10 @@ export default function ChatScreen({ route }) {
 
   // Track if initial scroll has happened
   const hasScrolledToBottom = useRef(false);
-
-  // Typing ref for debounced typing events
   const sendTypingRef = useRef(null);
+
+  // Show loading state while messages are being fetched
+  const [isLoadingMessages, setIsLoadingMessages] = useState(true);
 
   useEffect(() => {
     AsyncStorage.getItem("userId")
@@ -437,6 +440,7 @@ export default function ChatScreen({ route }) {
   useEffect(() => {
     let cancelled = false;
     const fetchHistory = async () => {
+      setIsLoadingMessages(true);
       try {
         let res;
         if (isGroup) {
@@ -453,6 +457,10 @@ export default function ChatScreen({ route }) {
         }
       } catch (err) {
         console.log("fetchHistory error", err);
+      } finally {
+        if (!cancelled) {
+          setIsLoadingMessages(false);
+        }
       }
     };
     if (chatInfo?.chatId) fetchHistory();
@@ -461,40 +469,45 @@ export default function ChatScreen({ route }) {
     };
   }, [chatKey, chatInfo.chatId, isGroup, loadMessages]);
 
-  // Function to safely scroll to bottom
-  const scrollToBottom = useCallback((animated = true) => {
-    if (!flatListRef.current) {
-      console.warn("scrollToBottom: flatListRef is null");
-      return;
-    }
-    if (messages.length === 0) return; // No need to scroll if no messages
-    try {
-      flatListRef.current.scrollToIndex({ index: 0, animated });
-    } catch (e) {
-      console.error("scrollToBottom error:", e);
-    }
-  }, [messages.length]);
+// Function to safely scroll to bottom
+const scrollToBottom = useCallback((animated = true) => {
+  if (!flatListRef.current) {
+    console.warn("scrollToBottom: flatListRef is null, skipping scroll");
+    return;
+  }
+  if (messages.length === 0) return; // No need to scroll if no messages
+  try {
+    flatListRef.current.scrollToIndex({ index: 0, animated });
+  } catch (e) {
+    console.error("scrollToBottom error:", e);
+  }
+}, [messages.length]);
 
-  // Scroll to bottom on initial render and when messages change
-  useEffect(() => {
-    if (messages.length === 0) return;
+// Scroll to bottom on initial render and when messages change
+useEffect(() => {
+  if (messages.length === 0 || isLoadingMessages) return;
 
-    const timer = setTimeout(() => {
-      scrollToBottom(!hasScrolledToBottom.current);
+  const timer = setTimeout(() => {
+    if (flatListRef.current && !hasScrolledToBottom.current) {
+      scrollToBottom(false); // Non-animated for initial scroll
       hasScrolledToBottom.current = true;
-    }, 100); // Delay to ensure FlatList is mounted
+    }
+  }, 300); // Keep the 300ms delay to allow FlatList to mount
 
-    return () => clearTimeout(timer);
-  }, [messages.length, scrollToBottom]);
+  return () => clearTimeout(timer);
+}, [messages.length, scrollToBottom, isLoadingMessages]);
 
-  // Scroll to bottom when pending media, docs, or location change
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      scrollToBottom(true);
-    }, 100);
+// Scroll to bottom when pending media, docs, or location change
+useEffect(() => {
+  if (isLoadingMessages) return; // Skip if still loading
+  const timer = setTimeout(() => {
+    if (flatListRef.current) {
+      scrollToBottom(true); // Animated for updates
+    }
+  }, 100);
 
-    return () => clearTimeout(timer);
-  }, [pendingMedia, pendingDocs, pendingLocation, scrollToBottom]);
+  return () => clearTimeout(timer);
+}, [pendingMedia, pendingDocs, pendingLocation, scrollToBottom, isLoadingMessages]);
 
   useEffect(() => {
     sendTypingRef.current = debounce((isTyping) => {
@@ -779,11 +792,26 @@ export default function ChatScreen({ route }) {
     setPendingDocs((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
+  // Render loading indicator
+const renderLoading = () => (
+  <DotLoader />
+);
+
+// calculate offset
+const keyboardOffset = Platform.select({
+  ios: 43,
+  android: 0,
+});
+
   return (
     <ImageBackground source={require("../../images/123.png")} style={{ flex: 1 }} resizeMode="cover">
       <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.1)" }} />
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={80}>
+<KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={keyboardOffset}
+    >
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 10 }}>
             <Ionicons name="arrow-back" size={26} color="#377355" />
@@ -803,26 +831,39 @@ export default function ChatScreen({ route }) {
 
         <TypingIndicator typingUsers={typingStatus} currentUser={myUserId?.toString()} />
 
-        <FlatList
-          ref={flatListRef}
-          data={messages.slice().reverse()} // Reverse messages for inverted display
-          keyExtractor={(item, index) => `${item.id ?? "idx-" + index}`}
-          renderItem={renderMessage}
-          contentContainerStyle={{ padding: 10, flexGrow: 1 }}
-          inverted // Invert the list to show latest messages at the bottom
-          initialNumToRender={20} // Optimize initial render
-          onContentSizeChange={() => {
-            if (hasScrolledToBottom.current) {
-              scrollToBottom(true);
-            }
-          }}
-          onLayout={() => {
-            if (!hasScrolledToBottom.current) {
-              scrollToBottom(false);
-              hasScrolledToBottom.current = true;
-            }
-          }}
-        />
+        {isLoadingMessages ? (
+          renderLoading()
+        ) : (
+          <FlatList
+            ref={flatListRef}
+            data={messages.slice().reverse()} // Reverse messages for inverted display
+            keyExtractor={(item, index) => `${item.id ?? "idx-" + index}`}
+            renderItem={renderMessage}
+            contentContainerStyle={{ padding: 10, flexGrow: 1 }}
+            inverted // Invert the list to show latest messages at the bottom
+            initialNumToRender={10} // Reduced to 10 for faster initial render
+            maxToRenderPerBatch={5} // Smaller batches for smoother rendering
+            windowSize={10} // Smaller window to reduce memory usage
+            removeClippedSubviews={true} // Clip off-screen views to improve performance
+            updateCellsBatchingPeriod={50} // Batch updates for smoother scrolling
+            initialScrollIndex={0} // Start at bottom (index 0 in inverted list)
+            maintainVisibleContentPosition={{
+              minIndexForVisible: 0,
+              autoscrollThreshold: 100,
+            }} // Maintain position during updates to reduce blink
+            onContentSizeChange={() => {
+              if (hasScrolledToBottom.current) {
+                scrollToBottom(true);
+              }
+            }}
+            onLayout={() => {
+              if (!hasScrolledToBottom.current && !isLoadingMessages) {
+                scrollToBottom(false);
+                hasScrolledToBottom.current = true;
+              }
+            }}
+          />
+        )}
 
         {/* Pending media preview */}
         {pendingMedia && pendingMedia.length > 0 && (
@@ -1104,7 +1145,6 @@ const styles = StyleSheet.create({
   },
 });
 
-
 // import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 // import {
 //   View,
@@ -1140,6 +1180,8 @@ const styles = StyleSheet.create({
 // import Geolocation from "react-native-geolocation-service";
 // import RNFS from "react-native-fs";
 // import { Video as VideoCompressor } from "react-native-compressor";
+// import AnimatedBubbleLoading from "./DotLoader";
+// import DotLoader from "./DotLoader";
 
 // const UPLOAD_PATH = "/upload/";
 // const MAX_VIDEO_BYTES = 5 * 1024 * 1024; // 5 MB target
@@ -1512,6 +1554,13 @@ const styles = StyleSheet.create({
 //   const [pendingMedia, setPendingMedia] = useState([]);
 //   const [pendingDocs, setPendingDocs] = useState([]);
 
+//   // Track if initial scroll has happened
+//   const hasScrolledToBottom = useRef(false);
+//   const sendTypingRef = useRef(null);
+
+//   // Show loading state while messages are being fetched
+//   const [isLoadingMessages, setIsLoadingMessages] = useState(true);
+
 //   useEffect(() => {
 //     AsyncStorage.getItem("userId")
 //       .then((id) => {
@@ -1538,6 +1587,7 @@ const styles = StyleSheet.create({
 //   useEffect(() => {
 //     let cancelled = false;
 //     const fetchHistory = async () => {
+//       setIsLoadingMessages(true);
 //       try {
 //         let res;
 //         if (isGroup) {
@@ -1554,6 +1604,10 @@ const styles = StyleSheet.create({
 //         }
 //       } catch (err) {
 //         console.log("fetchHistory error", err);
+//       } finally {
+//         if (!cancelled) {
+//           setIsLoadingMessages(false);
+//         }
 //       }
 //     };
 //     if (chatInfo?.chatId) fetchHistory();
@@ -1562,14 +1616,46 @@ const styles = StyleSheet.create({
 //     };
 //   }, [chatKey, chatInfo.chatId, isGroup, loadMessages]);
 
-//   useEffect(() => {
-//     if (!flatListRef.current) return;
-//     try {
-//       flatListRef.current.scrollToEnd({ animated: true });
-//     } catch (e) {}
-//   }, [messages.length]);
+// // Function to safely scroll to bottom
+// const scrollToBottom = useCallback((animated = true) => {
+//   if (!flatListRef.current) {
+//     console.warn("scrollToBottom: flatListRef is null, skipping scroll");
+//     return;
+//   }
+//   if (messages.length === 0) return; // No need to scroll if no messages
+//   try {
+//     flatListRef.current.scrollToIndex({ index: 0, animated });
+//   } catch (e) {
+//     console.error("scrollToBottom error:", e);
+//   }
+// }, [messages.length]);
 
-//   const sendTypingRef = useRef(null);
+// // Scroll to bottom on initial render and when messages change
+// useEffect(() => {
+//   if (messages.length === 0 || isLoadingMessages) return;
+
+//   const timer = setTimeout(() => {
+//     if (flatListRef.current && !hasScrolledToBottom.current) {
+//       scrollToBottom(false); // Non-animated for initial scroll
+//       hasScrolledToBottom.current = true;
+//     }
+//   }, 300); // Keep the 300ms delay to allow FlatList to mount
+
+//   return () => clearTimeout(timer);
+// }, [messages.length, scrollToBottom, isLoadingMessages]);
+
+// // Scroll to bottom when pending media, docs, or location change
+// useEffect(() => {
+//   if (isLoadingMessages) return; // Skip if still loading
+//   const timer = setTimeout(() => {
+//     if (flatListRef.current) {
+//       scrollToBottom(true); // Animated for updates
+//     }
+//   }, 100);
+
+//   return () => clearTimeout(timer);
+// }, [pendingMedia, pendingDocs, pendingLocation, scrollToBottom, isLoadingMessages]);
+
 //   useEffect(() => {
 //     sendTypingRef.current = debounce((isTyping) => {
 //       try {
@@ -1753,6 +1839,7 @@ const styles = StyleSheet.create({
 //           setReplyTo(null);
 //           setPendingMedia([]);
 //           setPendingDocs([]);
+//           scrollToBottom(true); // Scroll to bottom after sending attachments
 //         } else {
 //           console.warn("sendMessage: uploadAndSendAttachments returned false");
 //         }
@@ -1777,6 +1864,7 @@ const styles = StyleSheet.create({
 //           setInput("");
 //           setReplyTo(null);
 //           setPendingLocation(null);
+//           scrollToBottom(true); // Scroll to bottom after sending location
 //         } catch (e) {
 //           console.error("sendMessage -> sendJson location error", e);
 //           Alert.alert("Send failed", "Could not send location.");
@@ -1801,6 +1889,7 @@ const styles = StyleSheet.create({
 //         sendJson(textPayload);
 //         setInput("");
 //         setReplyTo(null);
+//         scrollToBottom(true); // Scroll to bottom after sending text
 //       } catch (e) {
 //         console.error("sendMessage -> sendJson text error", e);
 //         Alert.alert("Send failed", "Could not send message.");
@@ -1820,6 +1909,7 @@ const styles = StyleSheet.create({
 //     sendJson,
 //     uploadAndSendAttachments,
 //     toArray,
+//     scrollToBottom,
 //   ]);
 
 //   const renderMessage = ({ item }) => {
@@ -1849,11 +1939,26 @@ const styles = StyleSheet.create({
 //     setPendingDocs((prev) => prev.filter((_, i) => i !== index));
 //   }, []);
 
+//   // Render loading indicator
+// const renderLoading = () => (
+//   <DotLoader />
+// );
+
+// // calculate offset
+// const keyboardOffset = Platform.select({
+//   ios: 43,
+//   android: 0,
+// });
+
 //   return (
 //     <ImageBackground source={require("../../images/123.png")} style={{ flex: 1 }} resizeMode="cover">
 //       <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.1)" }} />
 
-//       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={80}>
+// <KeyboardAvoidingView
+//       style={{ flex: 1 }}
+//       behavior={Platform.OS === "ios" ? "padding" : "height"}
+//       keyboardVerticalOffset={keyboardOffset}
+//     >
 //         <View style={styles.header}>
 //           <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 10 }}>
 //             <Ionicons name="arrow-back" size={26} color="#377355" />
@@ -1873,7 +1978,39 @@ const styles = StyleSheet.create({
 
 //         <TypingIndicator typingUsers={typingStatus} currentUser={myUserId?.toString()} />
 
-//         <FlatList ref={flatListRef} data={messages} keyExtractor={(item, index) => `${item.id ?? "idx-" + index}`} renderItem={renderMessage} contentContainerStyle={{ padding: 10 }} />
+//         {isLoadingMessages ? (
+//           renderLoading()
+//         ) : (
+//           <FlatList
+//             ref={flatListRef}
+//             data={messages.slice().reverse()} // Reverse messages for inverted display
+//             keyExtractor={(item, index) => `${item.id ?? "idx-" + index}`}
+//             renderItem={renderMessage}
+//             contentContainerStyle={{ padding: 10, flexGrow: 1 }}
+//             inverted // Invert the list to show latest messages at the bottom
+//             initialNumToRender={10} // Reduced to 10 for faster initial render
+//             maxToRenderPerBatch={5} // Smaller batches for smoother rendering
+//             windowSize={10} // Smaller window to reduce memory usage
+//             removeClippedSubviews={true} // Clip off-screen views to improve performance
+//             updateCellsBatchingPeriod={50} // Batch updates for smoother scrolling
+//             initialScrollIndex={0} // Start at bottom (index 0 in inverted list)
+//             maintainVisibleContentPosition={{
+//               minIndexForVisible: 0,
+//               autoscrollThreshold: 100,
+//             }} // Maintain position during updates to reduce blink
+//             onContentSizeChange={() => {
+//               if (hasScrolledToBottom.current) {
+//                 scrollToBottom(true);
+//               }
+//             }}
+//             onLayout={() => {
+//               if (!hasScrolledToBottom.current && !isLoadingMessages) {
+//                 scrollToBottom(false);
+//                 hasScrolledToBottom.current = true;
+//               }
+//             }}
+//           />
+//         )}
 
 //         {/* Pending media preview */}
 //         {pendingMedia && pendingMedia.length > 0 && (
@@ -1968,7 +2105,7 @@ const styles = StyleSheet.create({
 
 //         <View style={styles.inputRow}>
 //           <TouchableOpacity style={{ marginRight: 8 }} onPress={() => setShowAttachmentMenu((s) => !s)}>
-//            <MaterialCommunityIcons name="dots-grid" size={30} color="#377355" />
+//             <MaterialCommunityIcons name="dots-grid" size={30} color="#377355" />
 //           </TouchableOpacity>
 
 //           <TextInput
@@ -2154,3 +2291,5 @@ const styles = StyleSheet.create({
 //     zIndex: 10,
 //   },
 // });
+
+
