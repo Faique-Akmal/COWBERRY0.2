@@ -583,9 +583,7 @@ import { useSocketStore } from "../stores/socketStore";
 import { useMessageStore } from "../stores/messageStore";
 import { BASE_URL } from "@env";
 
-/**
- * Helper: normalize url (avoid double slashes, allow full http(s) passthrough)
- */
+// Helper: normalize url
 function normalizeUrl(raw) {
   if (!raw) return null;
   if (typeof raw !== "string") return String(raw);
@@ -594,9 +592,7 @@ function normalizeUrl(raw) {
   return base ? `${base}/${String(raw).replace(/^\/+/, "")}` : raw;
 }
 
-/**
- * Do HEAD request to inspect remote headers (content-type, accept-ranges, content-length)
- */
+// Do HEAD request to inspect remote headers
 async function headUrl(url) {
   try {
     const res = await fetch(url, { method: "HEAD" });
@@ -612,9 +608,7 @@ async function headUrl(url) {
   }
 }
 
-/**
- * Download to cache path and return the local path or null
- */
+// Download to cache path or documents directory
 async function downloadToCache(url, cachePath, onProgress) {
   try {
     const dl = RNFS.downloadFile({
@@ -639,23 +633,57 @@ async function downloadToCache(url, cachePath, onProgress) {
   }
 }
 
-/**
- * DynamicMedia component:
- * - If image -> show image (existing logic)
- * - If video -> HEAD check -> if Accept-Ranges bytes -> use remote uri,
- *                else download to cache and play local file
- * - If not video (or HEAD says not video), show doc fallback (link)
- *
- * This avoids handing HTML/404/wrong mime to Video player (which causes black box)
- */
+// DynamicMedia component
 function DynamicMedia({ fileUrl, fileType }) {
   const [dimensions, setDimensions] = useState({ width: 220, height: 140 });
   const [ready, setReady] = useState(false);
   const [isVideo, setIsVideo] = useState(false);
   const [localUri, setLocalUri] = useState(null);
   const [error, setError] = useState(null);
+  const [videoDims, setVideoDims] = useState({ width: 260, height: 160 });
+  const [downloading, setDownloading] = useState(false); // NEW: Track download state
 
   const uri = normalizeUrl(fileUrl);
+  const fileName = uri ? uri.split("/").pop() : "document";
+
+  // NEW: Download handler for documents
+  const handleDownload = async () => {
+    if (!uri) {
+      Alert.alert("Error", "No file URL available.");
+      return;
+    }
+
+    setDownloading(true);
+    try {
+      // Use Documents directory for user-accessible storage
+      const downloadDir = Platform.OS === "ios" ? RNFS.DocumentDirectoryPath : RNFS.DownloadDirectoryPath;
+      const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_"); // Sanitize filename
+      const destPath = `${downloadDir}/${safeFileName}`;
+
+      // Check if file already exists
+      const exists = await RNFS.exists(destPath);
+      if (exists) {
+        Alert.alert("Info", `File already downloaded: ${safeFileName}`);
+        setDownloading(false);
+        return;
+      }
+
+      const downloaded = await downloadToCache(uri, destPath, (bytesWritten, contentLength) => {
+        console.log(`Download progress: ${Math.round((bytesWritten / contentLength) * 100)}%`);
+      });
+
+      if (downloaded) {
+        Alert.alert("Success", `File downloaded to: ${safeFileName}`);
+      } else {
+        Alert.alert("Error", "Failed to download file.");
+      }
+    } catch (e) {
+      console.log("handleDownload error:", e);
+      Alert.alert("Error", "Could not download file.");
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -671,7 +699,6 @@ function DynamicMedia({ fileUrl, fileType }) {
 
     const prepare = async () => {
       try {
-        // Image case: rely on Image.getSize as before
         if ((fileType || "").startsWith("image/")) {
           Image.getSize(
             uri,
@@ -694,39 +721,29 @@ function DynamicMedia({ fileUrl, fileType }) {
           return;
         }
 
-        // For non-image: try HEAD
         const head = await headUrl(uri);
         if (!head) {
-          // Could not reach server; fallback to show link
           setError("Could not reach server");
           setReady(true);
           return;
         }
 
-        // If HEAD says not video, treat as document/other
         if (!head.contentType || !head.contentType.startsWith("video/")) {
-          // Not a video (or server misreported) -> show as document link
           setIsVideo(false);
           setReady(true);
           return;
         }
 
-        // It's video-ish
         setIsVideo(true);
-
-        // If server supports ranges, we can stream directly
         const accept = (head.acceptRanges || "").toLowerCase();
         if (accept && accept.includes("bytes")) {
-          setLocalUri(uri); // remote streaming
+          setLocalUri(uri);
           setReady(true);
           return;
         }
 
-        // Server doesn't support range -> download full file then play local copy
-        // create cache path
         const name = `chat_video_${Date.now()}.mp4`;
         const cachePath = `${RNFS.CachesDirectoryPath}/${name}`;
-
         const downloaded = await downloadToCache(uri, cachePath);
         if (!downloaded) {
           setError("Download failed");
@@ -734,7 +751,6 @@ function DynamicMedia({ fileUrl, fileType }) {
           return;
         }
 
-        // basic validation: size > small threshold
         try {
           const st = await RNFS.stat(downloaded);
           if (st.size < 1000) {
@@ -747,7 +763,6 @@ function DynamicMedia({ fileUrl, fileType }) {
         }
 
         if (!cancelled) {
-          // RNFS returns path without file:// on iOS; react-native-video accepts both
           const final = downloaded.startsWith("file://") ? downloaded : `file://${downloaded}`;
           setLocalUri(final);
           setReady(true);
@@ -762,7 +777,6 @@ function DynamicMedia({ fileUrl, fileType }) {
     };
 
     prepare();
-
     return () => {
       cancelled = true;
     };
@@ -776,7 +790,6 @@ function DynamicMedia({ fileUrl, fileType }) {
     );
   }
 
-  // Image rendering (keeps original look)
   if ((fileType || "").startsWith("image/")) {
     return (
       <Image
@@ -787,7 +800,6 @@ function DynamicMedia({ fileUrl, fileType }) {
     );
   }
 
-  // not ready UI
   if (!ready) {
     return (
       <View style={localStyles.unknownBox}>
@@ -796,56 +808,72 @@ function DynamicMedia({ fileUrl, fileType }) {
     );
   }
 
-  // error or document fallback
-  if (error) {
+  if (error || !isVideo) {
     return (
-      <TouchableOpacity style={localStyles.docWrap} onPress={() => Linking.openURL(uri).catch(() => {})}>
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
+      <View style={localStyles.docWrap}>
+        <TouchableOpacity
+          style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
+          onPress={() => {
+            Linking.canOpenURL(uri)
+              .then((supported) => (supported ? Linking.openURL(uri) : Linking.openURL(uri.startsWith("http") ? uri : `https://${uri}`)))
+              .catch((e) => console.log("Open document error:", e));
+          }}
+        >
           <Feather name="file-text" size={22} color="#444" />
-          <View style={{ marginLeft: 8 }}>
+          <View style={{ marginLeft: 8, flex: 1 }}>
             <Text numberOfLines={1} style={localStyles.filename}>
-              {uri.split("/").pop()}
+              {fileName}
             </Text>
-            <Text style={localStyles.small}>{error}</Text>
+            <Text style={localStyles.small}>{error || "Open document"}</Text>
           </View>
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={localStyles.downloadBtn}
+          onPress={handleDownload}
+          disabled={downloading}
+          accessibilityLabel={`Download ${fileName}`}
+        >
+          <Feather name="download" size={20} color={downloading ? "#aaa" : "#377355"} />
+        </TouchableOpacity>
+      </View>
     );
   }
 
-  if (!isVideo) {
-    // Document fallback (open link)
-    return (
-      <TouchableOpacity
-        style={localStyles.docWrap}
-        onPress={() => {
-          Linking.canOpenURL(uri)
-            .then((supported) => (supported ? Linking.openURL(uri) : Linking.openURL(uri.startsWith("http") ? uri : `https://${uri}`)))
-            .catch((e) => console.log("Open document error:", e));
-        }}
-      >
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <Feather name="file-text" size={22} color="#444" />
-          <View style={{ marginLeft: 8 }}>
-            <Text numberOfLines={1} style={localStyles.filename}>
-              {uri.split("/").pop()}
-            </Text>
-            <Text style={localStyles.small}>Open document</Text>
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  }
+  const onVideoLoad = (meta) => {
+    try {
+      const ns = meta?.naturalSize || {};
+      let w = ns.width || meta?.width || 0;
+      let h = ns.height || meta?.height || 0;
 
-  // isVideo and ready -> show Video component
+      if (!w || !h) {
+        return;
+      }
+
+      const maxWidth = 260;
+      const scaleFactor = w > maxWidth ? maxWidth / w : 1;
+      const scaledWidth = Math.round(w * scaleFactor);
+      const scaledHeight = Math.round(h * scaleFactor);
+
+      setVideoDims({ width: scaledWidth, height: scaledHeight });
+    } catch (e) {
+      console.log("onVideoLoad error:", e);
+    }
+  };
+
   return (
     <View style={localStyles.mediaWrap}>
       <Video
         source={{ uri: localUri || uri }}
-        style={localStyles.video}
+        style={{
+          width: videoDims.width,
+          height: videoDims.height,
+          borderRadius: 8,
+          backgroundColor: "#000",
+        }}
         controls={true}
         paused={false}
         resizeMode="contain"
+        onLoad={onVideoLoad}
         onError={(e) => {
           console.log("Video playback error:", e);
         }}
@@ -857,11 +885,7 @@ function DynamicMedia({ fileUrl, fileType }) {
   );
 }
 
-/**
- * ChatBubble component (main)
- * - uses DynamicMedia above
- * - keeps your original UI & message delete logic
- */
+// ChatBubble component
 export default function ChatBubble({ msg, isMe, styles }) {
   const { sendJson } = useSocketStore();
 
@@ -902,7 +926,6 @@ export default function ChatBubble({ msg, isMe, styles }) {
     }
   };
 
-  // Prefer msg.files (canonical) else use attachments fallback
   let files = [];
   if (Array.isArray(msg.files) && msg.files.length > 0) {
     files = msg.files.map((f) => ({
@@ -1001,12 +1024,51 @@ export default function ChatBubble({ msg, isMe, styles }) {
 }
 
 const localStyles = StyleSheet.create({
-  mediaWrap: { marginTop: 6 },
-  image: { borderRadius: 8, backgroundColor: "#eee" },
-  video: { width: 260, height: 160, borderRadius: 8, backgroundColor: "#000" },
-  docWrap: { marginTop: 6, padding: 8, borderRadius: 8, backgroundColor: "#fafafa" },
-  filename: { fontSize: 13, marginTop: 6, color: "#222" },
-  filenameSmall: { fontSize: 12, color: "#666", marginTop: 4 },
-  small: { fontSize: 12, color: "#666" },
-  unknownBox: { marginTop: 6, padding: 8, borderRadius: 8, backgroundColor: "#fff3" },
+  mediaWrap: {
+    marginTop: 6
+  },
+  image: {
+    borderRadius: 8,
+    backgroundColor: "#eee"
+  },
+  video: {
+    width: 260,
+    height: 160,
+    borderRadius: 8,
+    backgroundColor: "#000"
+  },
+  docWrap: {
+    marginTop: 6,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: "#fafafa",
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  filename: {
+    fontSize: 13,
+    marginTop: 6,
+    color: "#222"
+  },
+  filenameSmall: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 4
+  },
+  small: {
+    fontSize: 12,
+    color: "#666"
+  },
+  unknownBox: {
+    marginTop: 6,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: "#fff3"
+  },
+  downloadBtn: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: "#fff",
+    marginLeft: 8,
+  },
 });
