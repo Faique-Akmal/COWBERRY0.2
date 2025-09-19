@@ -1,4 +1,3 @@
-// ChatScreen.jsx
 import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import {
   View,
@@ -33,16 +32,9 @@ import DocumentPicker from "react-native-document-picker";
 import { launchImageLibrary } from "react-native-image-picker";
 import Geolocation from "react-native-geolocation-service";
 import RNFS from "react-native-fs";
-
-// === compressor import (kept from your earlier changes) ===
 import { Video as VideoCompressor } from "react-native-compressor";
 
-/* ------------------------------------------------------------------
-  Minimal change: only fixed DocumentPicker usage.
-  UI and all other flows unchanged (video compression etc remain).
------------------------------------------------------------------- */
-
-const UPLOAD_PATH = "/upload/"; // (unused for new base64 flow but kept)
+const UPLOAD_PATH = "/upload/";
 const MAX_VIDEO_BYTES = 5 * 1024 * 1024; // 5 MB target
 const BASE64_SAFE_LIMIT_BYTES = 28 * 1024 * 1024; // safety cap (approx 28 MB base64)
 
@@ -62,7 +54,6 @@ function FloatingAttachmentMenu({
   const anim = useRef(new Animated.Value(show ? 1 : 0)).current;
   const sendJson = useSocketStore((s) => s.sendJson);
 
-  // support multiple selected images/videos and multiple docs (preview in menu)
   const [selectedMedia, setSelectedMedia] = useState([]); // [{ uri, name, type }]
   const [selectedDocs, setSelectedDocs] = useState([]); // [{ uri, name, type }]
   const [selectedLocation, setSelectedLocation] = useState(null); // { latitude, longitude }
@@ -92,10 +83,8 @@ function FloatingAttachmentMenu({
     [chatId, chatType]
   );
 
-  // ------------------ IMAGE / VIDEO ------------------
   const internalImageHandler = useCallback(async () => {
     try {
-      // allow images + videos, up to 5
       const res = await launchImageLibrary({ mediaType: "mixed", selectionLimit: 5 });
       if (res.didCancel) return;
       if (!res.assets || res.assets.length === 0) return;
@@ -106,7 +95,6 @@ function FloatingAttachmentMenu({
         size: a.fileSize || null,
         duration: a.duration || null,
       }));
-      // Forward to parent if it expects assets (parent will normalize)
       if (typeof onImagePressProp === "function") {
         try {
           onImagePressProp(assets);
@@ -115,7 +103,6 @@ function FloatingAttachmentMenu({
         }
         return;
       }
-      // fallback: keep local selection for preview inside menu
       setSelectedMedia((prev) => [...prev, ...assets]);
     } catch (e) {
       console.log("internalImageHandler error:", e);
@@ -123,20 +110,13 @@ function FloatingAttachmentMenu({
     }
   }, [onImagePressProp]);
 
-  // ------------------ DOCUMENTS ------------------
-  // *** FIXED: use modern DocumentPicker.pick with allowMultiSelection and fileCopyUri fallback ***
   const internalDocHandler = useCallback(async () => {
     try {
-      // use `pick` with allowMultiSelection (works across versions)
       const res = await DocumentPicker.pick({
         type: [DocumentPicker.types.allFiles],
         allowMultiSelection: true,
       });
-
-      // res may be a single object or an array depending on version/options
       const filesArray = Array.isArray(res) ? res : [res];
-
-      // Normalize: prefer fileCopyUri (iOS) else uri
       const docs = filesArray.map((d) => {
         const uri = d.fileCopyUri || d.uri || null;
         return {
@@ -146,9 +126,7 @@ function FloatingAttachmentMenu({
           size: d.size || null,
         };
       });
-
       if (!docs || docs.length === 0) return;
-
       if (typeof onDocPressProp === "function") {
         try {
           onDocPressProp(docs);
@@ -159,14 +137,12 @@ function FloatingAttachmentMenu({
       }
       setSelectedDocs((prev) => [...prev, ...docs]);
     } catch (err) {
-      // user cancelled
       if (DocumentPicker.isCancel(err)) return;
       console.log("internalDocHandler error", err);
       Alert.alert("Document error", "Could not pick document.");
     }
   }, [onDocPressProp]);
 
-  // ------------------ LOCATION ------------------
   const requestAndroidLocationPermission = async () => {
     if (Platform.OS !== "android") return true;
     try {
@@ -200,7 +176,6 @@ function FloatingAttachmentMenu({
             } catch (e) {
               console.log("onLocationPressProp error", e);
             }
-            // parent will handle closing menu — do not toggle here
             return;
           }
           setSelectedLocation({ latitude, longitude });
@@ -220,8 +195,6 @@ function FloatingAttachmentMenu({
   const sendSelectedMedia = useCallback(
     async (caption = "") => {
       if (!selectedMedia || selectedMedia.length === 0) return;
-      // This local menu preview send is unused when parent handles; kept for parity
-      // In typical flow parent handles and will call uploadAndSendAttachments in ChatScreen
       Alert.alert("Info", "Please use main send button in chat after selecting files.");
     },
     [selectedMedia]
@@ -281,11 +254,20 @@ function FloatingAttachmentMenu({
     });
   };
 
-  // handlers to expose
   const handleImage = internalImageHandler;
   const handleDoc = internalDocHandler;
   const handleLocation = internalLocationHandler;
   const handleTheme = onThemePressProp ?? (() => toggle());
+
+  // Handler to remove an item from selectedMedia
+  const removeSelectedMedia = useCallback((index) => {
+    setSelectedMedia((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  // Handler to remove an item from selectedDocs
+  const removeSelectedDoc = useCallback((index) => {
+    setSelectedDocs((prev) => prev.filter((_, i) => i !== index));
+  }, []);
 
   const pins = [
     { key: "image", ox: 1, oy: 0, onPress: handleImage, icon: <Feather name="image" size={16} color="#fff" /> },
@@ -324,7 +306,7 @@ function FloatingAttachmentMenu({
         <View style={styles.previewBox}>
           <ScrollView horizontal>
             {selectedMedia.map((m, i) => (
-              <View key={i} style={{ marginRight: 8, alignItems: "center" }}>
+              <View key={i} style={{ marginRight: 8, alignItems: "center", position: "relative" }}>
                 {m.type && m.type.startsWith("image/") ? (
                   <Image source={{ uri: m.uri }} style={{ width: 70, height: 70, borderRadius: 8 }} />
                 ) : (
@@ -332,6 +314,13 @@ function FloatingAttachmentMenu({
                     <Feather name="video" size={24} color="#fff" />
                   </View>
                 )}
+                <TouchableOpacity
+                  style={styles.removeBtn}
+                  onPress={() => removeSelectedMedia(i)}
+                  accessibilityLabel={`Remove ${m.name}`}
+                >
+                  <Feather name="x" size={16} color="#fff" />
+                </TouchableOpacity>
                 <Text numberOfLines={1} style={{ maxWidth: 70, fontSize: 11 }}>{m.name}</Text>
               </View>
             ))}
@@ -348,8 +337,15 @@ function FloatingAttachmentMenu({
         <View style={styles.previewBox}>
           <ScrollView horizontal>
             {selectedDocs.map((d, i) => (
-              <View key={i} style={{ marginRight: 8, alignItems: "center", width: 140 }}>
+              <View key={i} style={{ marginRight: 8, alignItems: "center", width: 140, position: "relative" }}>
                 <Feather name="file" size={36} color="#333" />
+                <TouchableOpacity
+                  style={styles.removeBtn}
+                  onPress={() => removeSelectedDoc(i)}
+                  accessibilityLabel={`Remove ${d.name}`}
+                >
+                  <Feather name="x" size={16} color="#fff" />
+                </TouchableOpacity>
                 <Text numberOfLines={1} style={{ maxWidth: 120, fontSize: 12 }}>{d.name}</Text>
               </View>
             ))}
@@ -382,8 +378,6 @@ function FloatingAttachmentMenu({
   );
 }
 
-/* ----------------- ChatScreen (default export) ----------------- */
-
 export default function ChatScreen({ route }) {
   const { chatInfo } = route.params;
   const navigation = useNavigation();
@@ -403,14 +397,19 @@ export default function ChatScreen({ route }) {
   const [replyTo, setReplyTo] = useState(null);
   const [myUserId, setMyUserId] = useState(null);
   const [showMembers, setShowMembers] = useState(false);
-  const [pendingLocation, setPendingLocation] = useState(null); // { latitude, longitude }
+  const [pendingLocation, setPendingLocation] = useState(null);
   const flatListRef = useRef(null);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const connectedChatRef = useRef(null);
 
-  // NEW: pending arrays for parent-handled selections
-  const [pendingMedia, setPendingMedia] = useState([]); // assets chosen from gallery (when parent handles)
-  const [pendingDocs, setPendingDocs] = useState([]); // docs chosen from menu
+  const [pendingMedia, setPendingMedia] = useState([]);
+  const [pendingDocs, setPendingDocs] = useState([]);
+
+  // Track if initial scroll has happened
+  const hasScrolledToBottom = useRef(false);
+
+  // Typing ref for debounced typing events
+  const sendTypingRef = useRef(null);
 
   useEffect(() => {
     AsyncStorage.getItem("userId")
@@ -462,14 +461,41 @@ export default function ChatScreen({ route }) {
     };
   }, [chatKey, chatInfo.chatId, isGroup, loadMessages]);
 
-  useEffect(() => {
-    if (!flatListRef.current) return;
+  // Function to safely scroll to bottom
+  const scrollToBottom = useCallback((animated = true) => {
+    if (!flatListRef.current) {
+      console.warn("scrollToBottom: flatListRef is null");
+      return;
+    }
+    if (messages.length === 0) return; // No need to scroll if no messages
     try {
-      flatListRef.current.scrollToEnd({ animated: true });
-    } catch (e) {}
+      flatListRef.current.scrollToIndex({ index: 0, animated });
+    } catch (e) {
+      console.error("scrollToBottom error:", e);
+    }
   }, [messages.length]);
 
-  const sendTypingRef = useRef(null);
+  // Scroll to bottom on initial render and when messages change
+  useEffect(() => {
+    if (messages.length === 0) return;
+
+    const timer = setTimeout(() => {
+      scrollToBottom(!hasScrolledToBottom.current);
+      hasScrolledToBottom.current = true;
+    }, 100); // Delay to ensure FlatList is mounted
+
+    return () => clearTimeout(timer);
+  }, [messages.length, scrollToBottom]);
+
+  // Scroll to bottom when pending media, docs, or location change
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      scrollToBottom(true);
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [pendingMedia, pendingDocs, pendingLocation, scrollToBottom]);
+
   useEffect(() => {
     sendTypingRef.current = debounce((isTyping) => {
       try {
@@ -494,16 +520,13 @@ export default function ChatScreen({ route }) {
     sendTypingRef.current?.(isTyping);
   }, [input]);
 
-  // -------------------- helper: toArray --------------------
   const toArray = useCallback((x) => {
     if (!x) return [];
     return Array.isArray(x) ? x : [x];
   }, []);
 
-  // Parent handlers for media/docs/location coming from FloatingAttachmentMenu
   const handleMediaChosen = useCallback(
     (assets) => {
-      // Normalize assets to array always
       const arr = Array.isArray(assets) ? assets : assets ? [assets] : [];
       setPendingMedia(arr);
       setShowAttachmentMenu(false);
@@ -526,23 +549,17 @@ export default function ChatScreen({ route }) {
     []
   );
 
-  // compress helper using react-native-compressor
   const compressVideoIfNeeded = useCallback(async (uri, name, providedSize = null) => {
     try {
-      // if provided size and already <= target => skip compression
       if (providedSize && providedSize <= MAX_VIDEO_BYTES) {
         return { ok: true, uri, size: providedSize };
       }
-
-      // call compressor
       console.log("compressVideoIfNeeded -> compressing", uri, name);
       const compressed = await VideoCompressor.compress(uri, { compressionMethod: "auto" });
       if (!compressed) {
         console.log("compressVideoIfNeeded -> compressor returned falsy");
         return { ok: false, error: "compressor-failed" };
       }
-
-      // ensure we have file path and stat it
       const path = compressed.startsWith("file://") ? compressed.replace("file://", "") : compressed;
       const exists = await RNFS.exists(path);
       if (!exists) {
@@ -559,7 +576,6 @@ export default function ChatScreen({ route }) {
     }
   }, []);
 
-  // helper to base64 encode items and send via websocket (no REST upload)
   const uploadAndSendAttachments = useCallback(
     async (items, caption = "") => {
       try {
@@ -581,7 +597,6 @@ export default function ChatScreen({ route }) {
         const attachments = [];
 
         for (const f of normalized) {
-          // If video -> compress if needed
           if ((f.type || "").startsWith("video/")) {
             const res = await compressVideoIfNeeded(f.uri, f.name, f.size);
             if (!res.ok) {
@@ -590,18 +605,15 @@ export default function ChatScreen({ route }) {
             }
             f.uri = res.uri;
             f.size = res.size;
-            // prefer mp4 mime
             f.type = "video/mp4";
             if (!f.name.endsWith(".mp4")) f.name = `${f.name.split(".")[0] || "video"}.mp4`;
           }
 
-          // Size safety
           if (f.size && f.size > BASE64_SAFE_LIMIT_BYTES) {
             Alert.alert("File too large", `${f.name} is too large to send.`);
             return false;
           }
 
-          // read file
           const filePath = f.uri.startsWith("file://") ? f.uri.replace("file://", "") : f.uri;
           let b64;
           try {
@@ -617,7 +629,6 @@ export default function ChatScreen({ route }) {
             return false;
           }
 
-          // optional extra safety check for video size
           const estimatedBytes = Math.round((b64.length * 3) / 4);
           if ((f.type || "").startsWith("video/") && estimatedBytes > MAX_VIDEO_BYTES) {
             Alert.alert("File too large", `${f.name} is larger than ${Math.round(MAX_VIDEO_BYTES / 1024 / 1024)} MB after compression.`);
@@ -653,34 +664,28 @@ export default function ChatScreen({ route }) {
     [isGroup, chatInfo?.chatId, replyTo, sendJson, compressVideoIfNeeded]
   );
 
-  // -------------------- sendMessage (REPLACED WITH SAFE MERGE) --------------------
   const sendMessage = useCallback(async () => {
     try {
-      // normalize pending arrays safely
       const pMedia = toArray(pendingMedia);
       const pDocs = toArray(pendingDocs);
-
-      // combined attachments chosen via parent
       const all = pMedia.concat(pDocs);
 
       console.log("sendMessage -> pendingMedia:", pMedia.length, "pendingDocs:", pDocs.length, "combined:", all.length);
 
-      // If there are attachments chosen, upload them and send as a file message
       if (all.length > 0) {
         const ok = await uploadAndSendAttachments(all, input.trim());
         if (ok) {
-          // reset UI
           setInput("");
           setReplyTo(null);
           setPendingMedia([]);
           setPendingDocs([]);
+          scrollToBottom(true); // Scroll to bottom after sending attachments
         } else {
           console.warn("sendMessage: uploadAndSendAttachments returned false");
         }
         return;
       }
 
-      // If there's a pending location, send it with caption (if any)
       if (pendingLocation) {
         const payload = {
           type: "send_message",
@@ -696,10 +701,10 @@ export default function ChatScreen({ route }) {
         console.log("sendMessage -> sending location payload", payload);
         try {
           sendJson(payload);
-          // reset UI
           setInput("");
           setReplyTo(null);
           setPendingLocation(null);
+          scrollToBottom(true); // Scroll to bottom after sending location
         } catch (e) {
           console.error("sendMessage -> sendJson location error", e);
           Alert.alert("Send failed", "Could not send location.");
@@ -707,7 +712,6 @@ export default function ChatScreen({ route }) {
         return;
       }
 
-      // Normal text message
       if (!input.trim()) {
         console.log("sendMessage -> nothing to send (empty input)");
         return;
@@ -725,6 +729,7 @@ export default function ChatScreen({ route }) {
         sendJson(textPayload);
         setInput("");
         setReplyTo(null);
+        scrollToBottom(true); // Scroll to bottom after sending text
       } catch (e) {
         console.error("sendMessage -> sendJson text error", e);
         Alert.alert("Send failed", "Could not send message.");
@@ -744,6 +749,7 @@ export default function ChatScreen({ route }) {
     sendJson,
     uploadAndSendAttachments,
     toArray,
+    scrollToBottom,
   ]);
 
   const renderMessage = ({ item }) => {
@@ -763,13 +769,14 @@ export default function ChatScreen({ route }) {
       });
   };
 
-  // load userId
-  useEffect(() => {
-    AsyncStorage.getItem("userId")
-      .then((id) => {
-        if (id) setMyUserId(parseInt(id, 10));
-      })
-      .catch((e) => console.log("AsyncStorage error", e));
+  // Handler to remove an item from pendingMedia
+  const removePendingMedia = useCallback((index) => {
+    setPendingMedia((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  // Handler to remove an item from pendingDocs
+  const removePendingDoc = useCallback((index) => {
+    setPendingDocs((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
   return (
@@ -796,14 +803,33 @@ export default function ChatScreen({ route }) {
 
         <TypingIndicator typingUsers={typingStatus} currentUser={myUserId?.toString()} />
 
-        <FlatList ref={flatListRef} data={messages} keyExtractor={(item, index) => `${item.id ?? "idx-" + index}`} renderItem={renderMessage} contentContainerStyle={{ padding: 10 }} />
+        <FlatList
+          ref={flatListRef}
+          data={messages.slice().reverse()} // Reverse messages for inverted display
+          keyExtractor={(item, index) => `${item.id ?? "idx-" + index}`}
+          renderItem={renderMessage}
+          contentContainerStyle={{ padding: 10, flexGrow: 1 }}
+          inverted // Invert the list to show latest messages at the bottom
+          initialNumToRender={20} // Optimize initial render
+          onContentSizeChange={() => {
+            if (hasScrolledToBottom.current) {
+              scrollToBottom(true);
+            }
+          }}
+          onLayout={() => {
+            if (!hasScrolledToBottom.current) {
+              scrollToBottom(false);
+              hasScrolledToBottom.current = true;
+            }
+          }}
+        />
 
-        {/* Pending media preview (when parent handles selection) */}
+        {/* Pending media preview */}
         {pendingMedia && pendingMedia.length > 0 && (
           <View style={styles.previewBox}>
             <ScrollView horizontal>
               {pendingMedia.map((m, i) => (
-                <View key={i} style={{ marginRight: 8, alignItems: "center" }}>
+                <View key={i} style={{ marginRight: 8, alignItems: "center", position: "relative" }}>
                   {m.type.startsWith("image/") ? (
                     <Image source={{ uri: m.uri }} style={{ width: 70, height: 70, borderRadius: 8 }} />
                   ) : m.type.startsWith("video/") ? (
@@ -815,6 +841,13 @@ export default function ChatScreen({ route }) {
                       <Feather name="file-text" size={24} color="#fff" />
                     </View>
                   )}
+                  <TouchableOpacity
+                    style={styles.removeBtn}
+                    onPress={() => removePendingMedia(i)}
+                    accessibilityLabel={`Remove ${m.name}`}
+                  >
+                    <Feather name="x" size={16} color="#fff" />
+                  </TouchableOpacity>
                   <Text numberOfLines={1} style={{ maxWidth: 70, fontSize: 11 }}>{m.name}</Text>
                 </View>
               ))}
@@ -827,8 +860,15 @@ export default function ChatScreen({ route }) {
           <View style={styles.previewBox}>
             <ScrollView horizontal>
               {pendingDocs.map((d, i) => (
-                <View key={i} style={{ marginRight: 8, alignItems: "center", width: 140 }}>
+                <View key={i} style={{ marginRight: 8, alignItems: "center", width: 140, position: "relative" }}>
                   <Feather name="file" size={36} color="#333" />
+                  <TouchableOpacity
+                    style={styles.removeBtn}
+                    onPress={() => removePendingDoc(i)}
+                    accessibilityLabel={`Remove ${d.name}`}
+                  >
+                    <Feather name="x" size={16} color="#fff" />
+                  </TouchableOpacity>
                   <Text numberOfLines={1} style={{ maxWidth: 120, fontSize: 12 }}>{d.name}</Text>
                 </View>
               ))}
@@ -863,7 +903,6 @@ export default function ChatScreen({ route }) {
           </View>
         )}
 
-        {/* FloatingAttachmentMenu - pass handlers so menu will hand stuff to parent */}
         <FloatingAttachmentMenu
           show={showAttachmentMenu}
           toggle={() => setShowAttachmentMenu((s) => !s)}
@@ -917,8 +956,6 @@ export default function ChatScreen({ route }) {
     </ImageBackground>
   );
 }
-
-/* ----------------- Styles (merged, same as your file) ----------------- */
 
 const styles = StyleSheet.create({
   header: {
@@ -1056,13 +1093,18 @@ const styles = StyleSheet.create({
   },
   pendingLocationImage: { width: 96, height: 64, borderRadius: 8, backgroundColor: "#ddd" },
   removeLocationBtn: { backgroundColor: "#cf2520ff", padding: 8, borderRadius: 8, marginLeft: 8, alignItems: "center", justifyContent: "center" },
+  removeBtn: {
+    position: "absolute",
+    top: 1,
+    right: -1,
+    backgroundColor: "rgba(184, 15, 15, 0.7)",
+    borderRadius: 12,
+    padding: 2,
+    zIndex: 10,
+  },
 });
 
 
-
-
-
-// ChatScreen.jsx
 // import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 // import {
 //   View,
@@ -1096,164 +1138,13 @@ const styles = StyleSheet.create({
 // import DocumentPicker from "react-native-document-picker";
 // import { launchImageLibrary } from "react-native-image-picker";
 // import Geolocation from "react-native-geolocation-service";
-// import RNBlobUtil from "react-native-blob-util";
+// import RNFS from "react-native-fs";
+// import { Video as VideoCompressor } from "react-native-compressor";
 
-// /* ------------------------------------------------------------------
-//   ChatScreen with:
-//    - RNBlobUtil multipart upload (content:// + file:// support)
-//    - fetch(FormData) fallback for iOS tmp files
-//    - normalizeFileUrl to ensure recipients get full http(s) URLs
-//    - sends `files` array in websocket payload with {url,type,name}
-// ------------------------------------------------------------------ */
+// const UPLOAD_PATH = "/upload/";
+// const MAX_VIDEO_BYTES = 5 * 1024 * 1024; // 5 MB target
+// const BASE64_SAFE_LIMIT_BYTES = 28 * 1024 * 1024; // safety cap (approx 28 MB base64)
 
-// const UPLOAD_PATH = "/upload/"; // change if your API differs
-
-// const getUploadUrl = () => {
-//   const base = axiosInstance?.defaults?.baseURL || "";
-//   if (!base) return UPLOAD_PATH;
-//   return base.endsWith("/") ? base.slice(0, -1) + UPLOAD_PATH : base + UPLOAD_PATH;
-// };
-
-// const normalizeFileUrl = (rawUrl) => {
-//   if (!rawUrl) return rawUrl;
-//   try {
-//     const s = String(rawUrl);
-//     if (s.startsWith("http://") || s.startsWith("https://")) return s;
-//     // try axiosInstance baseURL
-//     const base = axiosInstance?.defaults?.baseURL || "";
-//     if (base) return base.replace(/\/+$/, "") + "/" + s.replace(/^\/+/, "");
-//     return s;
-//   } catch (e) {
-//     return rawUrl;
-//   }
-// };
-
-// async function requestAndroidStoragePermission() {
-//   if (Platform.OS !== "android") return true;
-//   try {
-//     if (Platform.Version >= 33) {
-//       const readImages = await PermissionsAndroid.request("android.permission.READ_MEDIA_IMAGES", {
-//         title: "Read images permission",
-//         message: "App needs access to your images to pick photos.",
-//         buttonPositive: "OK",
-//       });
-//       const readVideo = await PermissionsAndroid.request("android.permission.READ_MEDIA_VIDEO", {
-//         title: "Read videos permission",
-//         message: "App needs access to your videos to pick videos.",
-//         buttonPositive: "OK",
-//       });
-//       return (
-//         readImages === PermissionsAndroid.RESULTS.GRANTED ||
-//         readVideo === PermissionsAndroid.RESULTS.GRANTED
-//       );
-//     } else {
-//       const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE, {
-//         title: "Storage permission",
-//         message: "App needs access to your storage to pick files.",
-//         buttonPositive: "OK",
-//       });
-//       return granted === PermissionsAndroid.RESULTS.GRANTED;
-//     }
-//   } catch (err) {
-//     console.warn("requestAndroidStoragePermission err", err);
-//     return false;
-//   }
-// }
-
-// /**
-//  * uploadFileBlob:
-//  * - Attempts RNBlobUtil.multipart upload (good for content:// and file://)
-//  * - On failure falls back to fetch + FormData (works well on iOS tmp file URLs)
-//  */
-// async function uploadFileBlob(file) {
-//   try {
-//     if (!file || !file.uri) {
-//       console.warn("uploadFileBlob: invalid file", file);
-//       return { success: false, error: "invalid file" };
-//     }
-//     const uri = String(file.uri);
-//     const filename = file.name || uri.split("/").pop() || `file_${Date.now()}`;
-//     const type = file.type || "application/octet-stream";
-//     const url = getUploadUrl();
-
-//     console.log("uploadFileBlob -> attempt RNBlobUtil upload", { filename, uri, type, url });
-
-//     const headers = { "Content-Type": "multipart/form-data" };
-//     try {
-//       const token = axiosInstance?.defaults?.headers?.common?.Authorization;
-//       if (token) headers.Authorization = token;
-//     } catch (e) {}
-
-//     // Try RNBlobUtil multipart first
-//     try {
-//       const wrappedUri = RNBlobUtil.wrap(uri);
-//       const parts = [
-//         {
-//           name: "file",
-//           filename,
-//           type,
-//           data: wrappedUri,
-//         },
-//       ];
-//       const resp = await RNBlobUtil.fetch("POST", url, headers, parts);
-//       let data;
-//       try {
-//         data = resp.json ? resp.json() : JSON.parse(resp.data || "{}");
-//       } catch (e) {
-//         console.warn("uploadFileBlob: RNBlobUtil response parse failed", e, resp.data);
-//         data = {};
-//       }
-//       const fileUrl = data?.file_url || data?.url || (data?.file && data.file.url) || null;
-//       console.log("uploadFileBlob -> RNBlobUtil success", { fileUrl, data });
-//       return { success: true, fileUrl, raw: data };
-//     } catch (rnErr) {
-//       console.warn("uploadFileBlob -> RNBlobUtil failed, falling back to fetch FormData", rnErr);
-//     }
-
-//     // fallback: use fetch + FormData
-//     try {
-//       const form = new FormData();
-//       form.append("file", {
-//         uri,
-//         name: filename,
-//         type,
-//       });
-//       console.log("uploadFileBlob -> fetch fallback form prepared, posting to", url);
-
-//       const fetchHeaders = {};
-//       try {
-//         const token = axiosInstance?.defaults?.headers?.common?.Authorization;
-//         if (token) fetchHeaders.Authorization = token;
-//       } catch (e) {}
-
-//       const resp = await fetch(url, {
-//         method: "POST",
-//         headers: fetchHeaders,
-//         body: form,
-//       });
-
-//       const resultText = await resp.text();
-//       let data;
-//       try {
-//         data = JSON.parse(resultText);
-//       } catch (e) {
-//         console.warn("uploadFileBlob -> fetch response parse failed", e, resultText);
-//         data = {};
-//       }
-//       const fileUrl = data?.file_url || data?.url || (data?.file && data.file.url) || null;
-//       console.log("uploadFileBlob -> fetch fallback success", { fileUrl, data, status: resp.status });
-//       return { success: true, fileUrl, raw: data };
-//     } catch (fetchErr) {
-//       console.log("uploadFileBlob -> fetch fallback failed:", fetchErr);
-//       return { success: false, error: fetchErr };
-//     }
-//   } catch (err) {
-//     console.log("uploadFileBlob outer error:", err);
-//     return { success: false, error: err };
-//   }
-// }
-
-// /* ------------------ FloatingAttachmentMenu (local) ------------------ */
 // function FloatingAttachmentMenu({
 //   show,
 //   toggle,
@@ -1270,9 +1161,9 @@ const styles = StyleSheet.create({
 //   const anim = useRef(new Animated.Value(show ? 1 : 0)).current;
 //   const sendJson = useSocketStore((s) => s.sendJson);
 
-//   const [selectedMedia, setSelectedMedia] = useState([]);
-//   const [selectedDocs, setSelectedDocs] = useState([]);
-//   const [selectedLocation, setSelectedLocation] = useState(null);
+//   const [selectedMedia, setSelectedMedia] = useState([]); // [{ uri, name, type }]
+//   const [selectedDocs, setSelectedDocs] = useState([]); // [{ uri, name, type }]
+//   const [selectedLocation, setSelectedLocation] = useState(null); // { latitude, longitude }
 
 //   useEffect(() => {
 //     Animated.timing(anim, { toValue: show ? 1 : 0, duration: 300, useNativeDriver: false }).start();
@@ -1299,26 +1190,17 @@ const styles = StyleSheet.create({
 //     [chatId, chatType]
 //   );
 
-//   const uploadFile = useCallback(async (file) => {
-//     return await uploadFileBlob(file);
-//   }, []);
-
 //   const internalImageHandler = useCallback(async () => {
 //     try {
-//       const ok = await requestAndroidStoragePermission();
-//       if (!ok) {
-//         Alert.alert("Permission denied", "Storage permission is required to pick media.");
-//         return;
-//       }
-
 //       const res = await launchImageLibrary({ mediaType: "mixed", selectionLimit: 5 });
-//       console.log("launchImageLibrary result:", JSON.stringify(res, null, 2));
-//       if (res?.didCancel) return;
-//       if (!res?.assets || res.assets.length === 0) return;
+//       if (res.didCancel) return;
+//       if (!res.assets || res.assets.length === 0) return;
 //       const assets = res.assets.map((a) => ({
 //         uri: a.uri,
 //         name: a.fileName || `file_${Date.now()}`,
 //         type: a.type || (a.uri?.endsWith(".mp4") ? "video/mp4" : "image/jpeg"),
+//         size: a.fileSize || null,
+//         duration: a.duration || null,
 //       }));
 //       if (typeof onImagePressProp === "function") {
 //         try {
@@ -1335,90 +1217,23 @@ const styles = StyleSheet.create({
 //     }
 //   }, [onImagePressProp]);
 
-//   const sendSelectedMedia = useCallback(
-//     async (caption = "") => {
-//       if (!selectedMedia || selectedMedia.length === 0) return;
-//       try {
-//         // upload each file and collect responses
-//         const ups = [];
-//         for (const m of selectedMedia) {
-//           const r = await uploadFile(m);
-//           ups.push(r);
-//           if (!r.success) {
-//             console.log("sendSelectedMedia: upload failed for", m, r);
-//             Alert.alert("Upload failed", `Could not upload ${m.name}`);
-//             return;
-//           }
-//         }
-
-//         // normalize attachments and full urls
-//         const attachments = ups.map((u, i) => {
-//           const raw = u?.fileUrl || (u?.raw && (u.raw.file_url || u.raw.url)) || null;
-//           const file_url = normalizeFileUrl(raw);
-//           return {
-//             file_url,
-//             file_type: selectedMedia[i].type || "",
-//             file_name: selectedMedia[i].name || "",
-//           };
-//         });
-
-//         // canonical files array for websocket / recipient clients
-//         const filesForWs = attachments.map((a) => ({
-//           url: a.file_url,
-//           type: a.file_type,
-//           name: a.file_name,
-//         }));
-
-//         const payload = makeBasePayload({
-//           type: "send_message",
-//           message_type: "file",
-//           content: caption || attachments.map((m) => m.file_name).join(", "),
-//           files: filesForWs,
-//           attachments,
-//         });
-
-//         sendJson(payload);
-//         setSelectedMedia([]);
-//         toggle();
-//       } catch (e) {
-//         console.log("sendSelectedMedia error", e);
-//         Alert.alert("Send failed", "Could not send media.");
-//       }
-//     },
-//     [selectedMedia, uploadFile, makeBasePayload, sendJson, toggle]
-//   );
-
 //   const internalDocHandler = useCallback(async () => {
 //     try {
-//       const ok = await requestAndroidStoragePermission();
-//       if (!ok) {
-//         Alert.alert("Permission denied", "Storage permission is required to pick documents.");
-//         return;
-//       }
-
-//       let res;
-//       if (typeof DocumentPicker.pickMultiple === "function") {
-//         res = await DocumentPicker.pickMultiple({
-//           type: [DocumentPicker.types.allFiles],
-//           copyTo: "cachesDirectory",
-//         });
-//       } else {
-//         res = await DocumentPicker.pick({
-//           type: [DocumentPicker.types.allFiles],
-//           allowMultiSelection: true,
-//           copyTo: "cachesDirectory",
-//         });
-//       }
-
-//       console.log("DocumentPicker result:", JSON.stringify(res, null, 2));
-//       if (!res || (Array.isArray(res) && res.length === 0)) return;
-
-//       const items = Array.isArray(res) ? res : [res];
-//       const docs = items.map((d) => {
-//         const uri = d.fileCopyUri || d.uri;
-//         return { uri, name: d.name, type: d.type || "application/octet-stream" };
+//       const res = await DocumentPicker.pick({
+//         type: [DocumentPicker.types.allFiles],
+//         allowMultiSelection: true,
 //       });
-
+//       const filesArray = Array.isArray(res) ? res : [res];
+//       const docs = filesArray.map((d) => {
+//         const uri = d.fileCopyUri || d.uri || null;
+//         return {
+//           uri,
+//           name: d.name || `file_${Date.now()}`,
+//           type: d.type || "application/octet-stream",
+//           size: d.size || null,
+//         };
+//       });
+//       if (!docs || docs.length === 0) return;
 //       if (typeof onDocPressProp === "function") {
 //         try {
 //           onDocPressProp(docs);
@@ -1429,61 +1244,11 @@ const styles = StyleSheet.create({
 //       }
 //       setSelectedDocs((prev) => [...prev, ...docs]);
 //     } catch (err) {
-//       if (DocumentPicker.isCancel && DocumentPicker.isCancel(err)) return;
+//       if (DocumentPicker.isCancel(err)) return;
 //       console.log("internalDocHandler error", err);
 //       Alert.alert("Document error", "Could not pick document.");
 //     }
 //   }, [onDocPressProp]);
-
-//   const sendSelectedDocs = useCallback(
-//     async (caption = "") => {
-//       if (!selectedDocs || selectedDocs.length === 0) return;
-//       try {
-//         const ups = [];
-//         for (const d of selectedDocs) {
-//           const r = await uploadFile(d);
-//           ups.push(r);
-//           if (!r.success) {
-//             console.log("sendSelectedDocs: upload failed for", d, r);
-//             Alert.alert("Upload failed", `Could not upload ${d.name}`);
-//             return;
-//           }
-//         }
-
-//         const attachments = ups.map((u, i) => {
-//           const raw = u?.fileUrl || (u?.raw && (u.raw.file_url || u.raw.url)) || null;
-//           const file_url = normalizeFileUrl(raw);
-//           return {
-//             file_url,
-//             file_type: selectedDocs[i].type || "",
-//             file_name: selectedDocs[i].name || "",
-//           };
-//         });
-
-//         const filesForWs = attachments.map((a) => ({
-//           url: a.file_url,
-//           type: a.file_type,
-//           name: a.file_name,
-//         }));
-
-//         const payload = makeBasePayload({
-//           type: "send_message",
-//           message_type: "file",
-//           content: caption || attachments.map((d) => d.file_name).join(", "),
-//           files: filesForWs,
-//           attachments,
-//         });
-
-//         sendJson(payload);
-//         setSelectedDocs([]);
-//         toggle();
-//       } catch (e) {
-//         console.log("sendSelectedDocs error", e);
-//         Alert.alert("Send failed", "Could not send documents.");
-//       }
-//     },
-//     [selectedDocs, uploadFile, makeBasePayload, sendJson, toggle]
-//   );
 
 //   const requestAndroidLocationPermission = async () => {
 //     if (Platform.OS !== "android") return true;
@@ -1534,6 +1299,22 @@ const styles = StyleSheet.create({
 //     }
 //   }, [onLocationPressProp]);
 
+//   const sendSelectedMedia = useCallback(
+//     async (caption = "") => {
+//       if (!selectedMedia || selectedMedia.length === 0) return;
+//       Alert.alert("Info", "Please use main send button in chat after selecting files.");
+//     },
+//     [selectedMedia]
+//   );
+
+//   const sendSelectedDocs = useCallback(
+//     async (caption = "") => {
+//       if (!selectedDocs || selectedDocs.length === 0) return;
+//       Alert.alert("Info", "Please use main send button in chat after selecting files.");
+//     },
+//     [selectedDocs]
+//   );
+
 //   const sendSelectedLocation = useCallback(async () => {
 //     if (selectedLocation && typeof onLocationPressProp === "function") {
 //       try {
@@ -1559,7 +1340,7 @@ const styles = StyleSheet.create({
 //       setSelectedLocation(null);
 //       toggle();
 //     } catch (e) {
-//       console.log("sendSelectedLocation error:", e);
+//       console.log("sendSelectedLocation error", e);
 //       Alert.alert("Send failed", "Could not send location.");
 //     }
 //   }, [selectedLocation, onLocationPressProp, makeBasePayload, sendJson, toggle]);
@@ -1584,6 +1365,16 @@ const styles = StyleSheet.create({
 //   const handleDoc = internalDocHandler;
 //   const handleLocation = internalLocationHandler;
 //   const handleTheme = onThemePressProp ?? (() => toggle());
+
+//   // Handler to remove an item from selectedMedia
+//   const removeSelectedMedia = useCallback((index) => {
+//     setSelectedMedia((prev) => prev.filter((_, i) => i !== index));
+//   }, []);
+
+//   // Handler to remove an item from selectedDocs
+//   const removeSelectedDoc = useCallback((index) => {
+//     setSelectedDocs((prev) => prev.filter((_, i) => i !== index));
+//   }, []);
 
 //   const pins = [
 //     { key: "image", ox: 1, oy: 0, onPress: handleImage, icon: <Feather name="image" size={16} color="#fff" /> },
@@ -1617,22 +1408,26 @@ const styles = StyleSheet.create({
 //         ))}
 //       </Animated.View>
 
+//       {/* Previews for media/docs/location */}
 //       {selectedMedia.length > 0 && (
 //         <View style={styles.previewBox}>
 //           <ScrollView horizontal>
 //             {selectedMedia.map((m, i) => (
-//               <View key={i} style={{ marginRight: 8, alignItems: "center" }}>
-//                 {(m.type || "").startsWith("image/") ? (
+//               <View key={i} style={{ marginRight: 8, alignItems: "center", position: "relative" }}>
+//                 {m.type && m.type.startsWith("image/") ? (
 //                   <Image source={{ uri: m.uri }} style={{ width: 70, height: 70, borderRadius: 8 }} />
-//                 ) : (m.type || "").startsWith("video/") ? (
+//                 ) : (
 //                   <View style={{ width: 70, height: 70, borderRadius: 8, backgroundColor: "#222", alignItems: "center", justifyContent: "center" }}>
 //                     <Feather name="video" size={24} color="#fff" />
 //                   </View>
-//                 ) : (
-//                   <View style={{ width: 70, height: 70, borderRadius: 8, backgroundColor: "#999", alignItems: "center", justifyContent: "center" }}>
-//                     <Feather name="file-text" size={24} color="#fff" />
-//                   </View>
 //                 )}
+//                 <TouchableOpacity
+//                   style={styles.removeBtn}
+//                   onPress={() => removeSelectedMedia(i)}
+//                   accessibilityLabel={`Remove ${m.name}`}
+//                 >
+//                   <Feather name="x" size={16} color="#fff" />
+//                 </TouchableOpacity>
 //                 <Text numberOfLines={1} style={{ maxWidth: 70, fontSize: 11 }}>{m.name}</Text>
 //               </View>
 //             ))}
@@ -1649,8 +1444,15 @@ const styles = StyleSheet.create({
 //         <View style={styles.previewBox}>
 //           <ScrollView horizontal>
 //             {selectedDocs.map((d, i) => (
-//               <View key={i} style={{ marginRight: 8, alignItems: "center", width: 140 }}>
+//               <View key={i} style={{ marginRight: 8, alignItems: "center", width: 140, position: "relative" }}>
 //                 <Feather name="file" size={36} color="#333" />
+//                 <TouchableOpacity
+//                   style={styles.removeBtn}
+//                   onPress={() => removeSelectedDoc(i)}
+//                   accessibilityLabel={`Remove ${d.name}`}
+//                 >
+//                   <Feather name="x" size={16} color="#fff" />
+//                 </TouchableOpacity>
 //                 <Text numberOfLines={1} style={{ maxWidth: 120, fontSize: 12 }}>{d.name}</Text>
 //               </View>
 //             ))}
@@ -1682,13 +1484,6 @@ const styles = StyleSheet.create({
 //     </View>
 //   );
 // }
-
-// /* rest of ChatScreen implementation (UI, sendMessage, uploadAndSendAttachments etc.) is unchanged */
-// /* Keep your existing styles and other code from the previous ChatScreen file. */
-// /* Important: make sure uploadAndSendAttachments uses normalizeFileUrl (as used above) and sends `files` array with url,type,name. */
-
-
-// /* ----------------- ChatScreen (default export) ----------------- */
 
 // export default function ChatScreen({ route }) {
 //   const { chatInfo } = route.params;
@@ -1828,6 +1623,33 @@ const styles = StyleSheet.create({
 //     []
 //   );
 
+//   const compressVideoIfNeeded = useCallback(async (uri, name, providedSize = null) => {
+//     try {
+//       if (providedSize && providedSize <= MAX_VIDEO_BYTES) {
+//         return { ok: true, uri, size: providedSize };
+//       }
+//       console.log("compressVideoIfNeeded -> compressing", uri, name);
+//       const compressed = await VideoCompressor.compress(uri, { compressionMethod: "auto" });
+//       if (!compressed) {
+//         console.log("compressVideoIfNeeded -> compressor returned falsy");
+//         return { ok: false, error: "compressor-failed" };
+//       }
+//       const path = compressed.startsWith("file://") ? compressed.replace("file://", "") : compressed;
+//       const exists = await RNFS.exists(path);
+//       if (!exists) {
+//         console.log("compressVideoIfNeeded -> compressed file not found", path);
+//         return { ok: false, error: "compressed-not-found" };
+//       }
+//       const stat = await RNFS.stat(path);
+//       const newSize = Number(stat.size || 0);
+//       console.log("compressVideoIfNeeded -> compressed size", newSize);
+//       return { ok: true, uri: path.startsWith("/") ? `file://${path}` : `file://${path}`, size: newSize };
+//     } catch (e) {
+//       console.log("compressVideoIfNeeded error", e);
+//       return { ok: false, error: e };
+//     }
+//   }, []);
+
 //   const uploadAndSendAttachments = useCallback(
 //     async (items, caption = "") => {
 //       try {
@@ -1837,32 +1659,59 @@ const styles = StyleSheet.create({
 //           return false;
 //         }
 
-//         console.log("uploadAndSendAttachments: encoding items count=", list.length);
-
 //         const normalized = list
 //           .map((it, idx) => {
 //             if (!it) return null;
-//             if (it.uri) return { uri: it.uri, name: it.name || it.fileName || `file_${Date.now()}_${idx}`, type: it.type || "application/octet-stream" };
-//             return { uri: String(it), name: `file_${Date.now()}_${idx}`, type: "application/octet-stream" };
+//             if (it.uri) return { uri: it.uri, name: it.name || it.fileName || `file_${Date.now()}_${idx}`, type: it.type || "application/octet-stream", size: it.size || null };
+//             return { uri: String(it), name: `file_${Date.now()}_${idx}`, type: "application/octet-stream", size: null };
 //           })
 //           .filter(Boolean);
 
-//         const ups = [];
+//         const filesBase64 = [];
+//         const attachments = [];
+
 //         for (const f of normalized) {
-//           const u = await uploadFileBlob(f);
-//           ups.push(u);
-//           if (!u.success) {
-//             console.log("uploadAndSendAttachments: upload failed for", f, u);
-//             Alert.alert("Upload failed", `Could not upload ${f.name}`);
+//           if ((f.type || "").startsWith("video/")) {
+//             const res = await compressVideoIfNeeded(f.uri, f.name, f.size);
+//             if (!res.ok) {
+//               Alert.alert("Video error", `Could not compress ${f.name}.`);
+//               return false;
+//             }
+//             f.uri = res.uri;
+//             f.size = res.size;
+//             f.type = "video/mp4";
+//             if (!f.name.endsWith(".mp4")) f.name = `${f.name.split(".")[0] || "video"}.mp4`;
+//           }
+
+//           if (f.size && f.size > BASE64_SAFE_LIMIT_BYTES) {
+//             Alert.alert("File too large", `${f.name} is too large to send.`);
 //             return false;
 //           }
-//         }
 
-//         const attachments = ups.map((u, i) => ({
-//           file_url: u.fileUrl,
-//           file_type: normalized[i].type,
-//           file_name: normalized[i].name,
-//         }));
+//           const filePath = f.uri.startsWith("file://") ? f.uri.replace("file://", "") : f.uri;
+//           let b64;
+//           try {
+//             b64 = await RNFS.readFile(filePath, "base64");
+//           } catch (e) {
+//             console.log("readFile failed", filePath, e);
+//             Alert.alert("File read error", `Cannot read ${f.name}`);
+//             return false;
+//           }
+
+//           if (!b64) {
+//             Alert.alert("File error", `Empty file ${f.name}`);
+//             return false;
+//           }
+
+//           const estimatedBytes = Math.round((b64.length * 3) / 4);
+//           if ((f.type || "").startsWith("video/") && estimatedBytes > MAX_VIDEO_BYTES) {
+//             Alert.alert("File too large", `${f.name} is larger than ${Math.round(MAX_VIDEO_BYTES / 1024 / 1024)} MB after compression.`);
+//             return false;
+//           }
+
+//           filesBase64.push(`data:${f.type};base64,${b64}`);
+//           attachments.push({ file_name: f.name, file_type: f.type, file_url: null });
+//         }
 
 //         const payload = {
 //           type: "send_message",
@@ -1873,20 +1722,20 @@ const styles = StyleSheet.create({
 //           parent_id: replyTo?.id || null,
 //           latitude: null,
 //           longitude: null,
-//           files: [],
+//           files: filesBase64,
 //           attachments,
 //         };
 
-//         console.log("uploadAndSendAttachments -> sending websocket payload with attachments:", attachments);
+//         console.log("uploadAndSendAttachments -> sending payload", { count: filesBase64.length, attachments });
 //         sendJson(payload);
 //         return true;
 //       } catch (e) {
-//         console.log("uploadAndSendAttachments error (blob flow)", e);
-//         Alert.alert("Send failed", "Could not send attachments via websocket.");
+//         console.log("uploadAndSendAttachments error", e);
+//         Alert.alert("Send failed", "Could not send attachments.");
 //         return false;
 //       }
 //     },
-//     [isGroup, chatInfo?.chatId, replyTo, sendJson]
+//     [isGroup, chatInfo?.chatId, replyTo, sendJson, compressVideoIfNeeded]
 //   );
 
 //   const sendMessage = useCallback(async () => {
@@ -1990,12 +1839,14 @@ const styles = StyleSheet.create({
 //       });
 //   };
 
-//   useEffect(() => {
-//     AsyncStorage.getItem("userId")
-//       .then((id) => {
-//         if (id) setMyUserId(parseInt(id, 10));
-//       })
-//       .catch((e) => console.log("AsyncStorage error", e));
+//   // Handler to remove an item from pendingMedia
+//   const removePendingMedia = useCallback((index) => {
+//     setPendingMedia((prev) => prev.filter((_, i) => i !== index));
+//   }, []);
+
+//   // Handler to remove an item from pendingDocs
+//   const removePendingDoc = useCallback((index) => {
+//     setPendingDocs((prev) => prev.filter((_, i) => i !== index));
 //   }, []);
 
 //   return (
@@ -2024,14 +1875,15 @@ const styles = StyleSheet.create({
 
 //         <FlatList ref={flatListRef} data={messages} keyExtractor={(item, index) => `${item.id ?? "idx-" + index}`} renderItem={renderMessage} contentContainerStyle={{ padding: 10 }} />
 
+//         {/* Pending media preview */}
 //         {pendingMedia && pendingMedia.length > 0 && (
 //           <View style={styles.previewBox}>
 //             <ScrollView horizontal>
 //               {pendingMedia.map((m, i) => (
-//                 <View key={i} style={{ marginRight: 8, alignItems: "center" }}>
-//                   {(m.type || "").startsWith("image/") ? (
+//                 <View key={i} style={{ marginRight: 8, alignItems: "center", position: "relative" }}>
+//                   {m.type.startsWith("image/") ? (
 //                     <Image source={{ uri: m.uri }} style={{ width: 70, height: 70, borderRadius: 8 }} />
-//                   ) : (m.type || "").startsWith("video/") ? (
+//                   ) : m.type.startsWith("video/") ? (
 //                     <View style={{ width: 70, height: 70, borderRadius: 8, backgroundColor: "#222", alignItems: "center", justifyContent: "center" }}>
 //                       <Feather name="video" size={24} color="#fff" />
 //                     </View>
@@ -2040,6 +1892,13 @@ const styles = StyleSheet.create({
 //                       <Feather name="file-text" size={24} color="#fff" />
 //                     </View>
 //                   )}
+//                   <TouchableOpacity
+//                     style={styles.removeBtn}
+//                     onPress={() => removePendingMedia(i)}
+//                     accessibilityLabel={`Remove ${m.name}`}
+//                   >
+//                     <Feather name="x" size={16} color="#fff" />
+//                   </TouchableOpacity>
 //                   <Text numberOfLines={1} style={{ maxWidth: 70, fontSize: 11 }}>{m.name}</Text>
 //                 </View>
 //               ))}
@@ -2047,12 +1906,20 @@ const styles = StyleSheet.create({
 //           </View>
 //         )}
 
+//         {/* Pending docs preview */}
 //         {pendingDocs && pendingDocs.length > 0 && (
 //           <View style={styles.previewBox}>
 //             <ScrollView horizontal>
 //               {pendingDocs.map((d, i) => (
-//                 <View key={i} style={{ marginRight: 8, alignItems: "center", width: 140 }}>
+//                 <View key={i} style={{ marginRight: 8, alignItems: "center", width: 140, position: "relative" }}>
 //                   <Feather name="file" size={36} color="#333" />
+//                   <TouchableOpacity
+//                     style={styles.removeBtn}
+//                     onPress={() => removePendingDoc(i)}
+//                     accessibilityLabel={`Remove ${d.name}`}
+//                   >
+//                     <Feather name="x" size={16} color="#fff" />
+//                   </TouchableOpacity>
 //                   <Text numberOfLines={1} style={{ maxWidth: 120, fontSize: 12 }}>{d.name}</Text>
 //                 </View>
 //               ))}
@@ -2060,6 +1927,7 @@ const styles = StyleSheet.create({
 //           </View>
 //         )}
 
+//         {/* Location pending preview */}
 //         {pendingLocation && (
 //           <View style={styles.pendingLocationBox}>
 //             <TouchableOpacity onPress={() => openMaps(pendingLocation.latitude, pendingLocation.longitude)} style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
@@ -2100,7 +1968,7 @@ const styles = StyleSheet.create({
 
 //         <View style={styles.inputRow}>
 //           <TouchableOpacity style={{ marginRight: 8 }} onPress={() => setShowAttachmentMenu((s) => !s)}>
-//             <MaterialCommunityIcons name="dots-grid" size={30} color="#377355" />
+//            <MaterialCommunityIcons name="dots-grid" size={30} color="#377355" />
 //           </TouchableOpacity>
 
 //           <TextInput
@@ -2139,8 +2007,6 @@ const styles = StyleSheet.create({
 //     </ImageBackground>
 //   );
 // }
-
-// /* ----------------- Styles (merged) ----------------- */
 
 // const styles = StyleSheet.create({
 //   header: {
@@ -2278,310 +2144,13 @@ const styles = StyleSheet.create({
 //   },
 //   pendingLocationImage: { width: 96, height: 64, borderRadius: 8, backgroundColor: "#ddd" },
 //   removeLocationBtn: { backgroundColor: "#cf2520ff", padding: 8, borderRadius: 8, marginLeft: 8, alignItems: "center", justifyContent: "center" },
-// });
-
-
-
-
-
-
-
-// import React, { useEffect, useState, useCallback, useRef } from "react";
-// import {
-//   View,
-//   TextInput,
-//   TouchableOpacity,
-//   FlatList,
-//   Text,
-//   StyleSheet,
-//   ImageBackground,
-//   Modal,
-//   ScrollView,
-//   Image,
-//   KeyboardAvoidingView
-// } from "react-native";
-// import Ionicons from "react-native-vector-icons/Ionicons";
-// import AsyncStorage from "@react-native-async-storage/async-storage";
-// import { useMessageStore } from "../stores/messageStore";
-// import { useSocketStore } from "../stores/socketStore";
-// import axiosInstance from "../../TokenHandling/axiosInstance";
-// import TypingIndicator from "../components/TypingIndicator";
-// import ChatBubble from "../components/ChatBubble";
-// import { useNavigation } from "@react-navigation/native";
-
-// export default function ChatScreen({ route }) {
-//   const { chatInfo } = route.params;
-//   const { sendJson, typingStatus, connect } = useSocketStore();
-//   const { messagesByChatId, loadMessages } = useMessageStore();
-//   const navigation = useNavigation();
-
-//   const [input, setInput] = useState("");
-//   const [replyTo, setReplyTo] = useState(null);
-//   const [myUserId, setMyUserId] = useState(null);
-//   const [showMembers, setShowMembers] = useState(false);
-//   const flatListRef = useRef(null);
-
-//   const chatKey = `${chatInfo.chatId}-${chatInfo.chatType}`;
-  
-//   const messages = useMessageStore(
-//   (state) => state.messagesByChatId[chatKey] || []
-// );
-
-
-//   useEffect(() => {
-//     console.log("ChatScreen chatInfo:", chatInfo);
-//   }, [chatInfo]);
-
-
-//   useEffect(() => {
-//     AsyncStorage.getItem("userId").then((id) => {
-//       if (id) setMyUserId(parseInt(id, 10));
-//     });
-//   }, []);
-
-//   useEffect(() => {
-//     connect(chatInfo);
-//   }, [chatInfo]);
-
-//   useEffect(() => {
-//     const fetchHistory = async () => {
-//       try {
-//         let res;
-//         if (chatInfo.chatType === "group") {
-//           res = await axiosInstance.get(`/chat/messages/group/${chatInfo.chatId}/`);
-//         } else {
-//           res = await axiosInstance.get(`/chat/messages/personal/${chatInfo.chatId}/`);
-//         }
-//         loadMessages(chatKey, res.data);
-//       } catch (err) {
-//         console.log("fetchHistory error", err);
-//       }
-//     };
-//     fetchHistory();
-//   }, [chatInfo.chatId]);
-
-//   useEffect(() => {
-//     flatListRef.current?.scrollToEnd({ animated: true });
-//   }, [messages]);
-
-//   const handleTyping = useCallback(() => {
-//     sendJson({
-//       type: "typing",
-//       is_typing: input.trim().length > 0,
-//       group_id: chatInfo.chatType === "group" ? chatInfo.chatId : null,
-//       receiver_id: chatInfo.chatType === "personal" ? chatInfo.chatId : null,
-//     });
-//   }, [input, chatInfo]);
-
-//   const sendMessage = useCallback(() => {
-//     if (!input.trim()) return;
-//     const payload = {
-//       type: "send_message",
-//       content: input.trim(),
-//       group_id: chatInfo.chatType === "group" ? chatInfo.chatId : null,
-//       receiver_id: chatInfo.chatType === "personal" ? chatInfo.chatId : null,
-//       parent_id: replyTo?.id || null,
-//     };
-//     sendJson(payload);
-//     setInput("");
-//     setReplyTo(null);
-//   }, [input, chatInfo, replyTo]);
-
-//   const renderMessage = ({ item }) => {
-//     const isMe = item.sender === myUserId;
-//     return <ChatBubble msg={item} isMe={isMe} styles={styles} />;
-//   };
-
-//   return (
-//     <ImageBackground
-//       source={require("../../images/123.png")}
-//       style={{ flex: 1 }}
-//       resizeMode="cover"
-//     >
-//       <View
-//         style={{
-//           ...StyleSheet.absoluteFillObject,
-//           backgroundColor: "rgba(0,0,0,0.1)",
-//         }}
-//       />
-
-//         {/* ✅ KeyboardAvoidingView Wrap */}
-//   <KeyboardAvoidingView
-//     style={{ flex: 1 }}
-//     behavior={Platform.OS === "ios" ? "padding" : "height"}
-//     keyboardVerticalOffset={80} // header ki height jitna offset
-//   >
-
-//       {/* ✅ Custom Header */}
-//       <View style={styles.header}>
-//         {/* Back Button */}
-//         <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 10 }}>
-//           <Ionicons name="arrow-back" size={26} color="#377355" />
-//         </TouchableOpacity>
-
-//         {/* Chat Name */}
-//         <Text style={styles.headerTitle}>{chatInfo.chatName}</Text>
-
-//         {/* Right side (only for group) */}
-//         {chatInfo.chatType === "group" && (
-//           <View style={styles.headerRight}>
-//             <Text style={styles.groupInfoText}>Group Info</Text>
-//             <TouchableOpacity onPress={() => setShowMembers(true)}>
-//               <Ionicons name="people-circle" size={28} color="#333" />
-//             </TouchableOpacity>
-//           </View>
-//         )}
-//       </View>
-
-//       {/* 👇 Typing Indicator */}
-//       <TypingIndicator typingUsers={typingStatus} currentUser={myUserId?.toString()} />
-
-//       <FlatList
-//         ref={flatListRef}
-//         data={messages}
-//         keyExtractor={(item, index) => `${item.id}-${index}`}
-//         renderItem={renderMessage}
-//         contentContainerStyle={{ padding: 10 }}
-//       />
-
-//       <View style={styles.inputRow}>
-//         <TextInput
-//           style={styles.input}
-//           value={input}
-//           onChangeText={(text) => {
-//             setInput(text);
-//             handleTyping();
-//           }}
-//           placeholder="Type a message..."
-//           onSubmitEditing={sendMessage}
-//           returnKeyType="send"
-//         />
-//         <TouchableOpacity onPress={sendMessage}>
-//           <Ionicons name="send" size={24} color="#377355" />
-//         </TouchableOpacity>
-//       </View>
-//       </KeyboardAvoidingView>
-
-//       {/* ✅ Members Modal */}
-//       <Modal visible={showMembers} animationType="slide" transparent>
-//         <View style={styles.modalOverlay}>
-//           <View style={styles.modalContent}>
-//             <Text style={styles.modalTitle}>{chatInfo.members?.length || 0} Members</Text>
-//             <ScrollView>
-//               {chatInfo.members?.map((m, idx) => (
-//                 <View key={idx} style={styles.memberRow}>
-//                   <Image
-//                     source={{ uri: m.profile_image || "https://cdn-icons-png.flaticon.com/512/149/149071.png" }}
-//                     style={styles.memberAvatar}
-//                   />
-//                   <Text style={styles.memberName}>{m.username || `User ${m.id}`}</Text>
-//                 </View>
-//               ))}
-//             </ScrollView>
-//             <TouchableOpacity style={styles.closeBtn} onPress={() => setShowMembers(false)}>
-//               <Text style={{ color: "#fff", fontWeight: "600" }}>Close</Text>
-//             </TouchableOpacity>
-//           </View>
-//         </View>
-//       </Modal>
-//     </ImageBackground>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   header: {
-//     paddingHorizontal: 12,
-//     paddingVertical: 10,
-//     borderBottomWidth: 1,
-//     borderColor: "#ddd",
-//     backgroundColor: "#FFF",
-//     flexDirection: "row",
-//     justifyContent: "space-between",
-//     alignItems: "center",
-//   },
-//   headerTitle: {
-//     fontSize: 18,
-//     fontWeight: "bold",
-//     flex: 1,
-//   },
-//   headerRight: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//     gap: 6,
-//   },
-//   groupInfoText: {
-//     fontSize: 14,
-//     color: "#555",
-//     marginRight: 5,
-//   },
-//   msgContainer: {
-//     marginVertical: 6,
-//     maxWidth: "80%",
-//   },
-//   msgBubble: {
-//     padding: 12,
-//     borderRadius: 10,
-//   },
-//   msgText: {
-//     fontSize: 16,
-//     color: "#000",
-//   },
-//   inputRow: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//     padding: 8,
-//     backgroundColor: "#fff",
-//     borderTopColor: "#000",
-//     borderTopWidth: 1
-//   },
-//   input: {
-//     flex: 1,
-//     borderWidth: 1,
-//     borderColor: "#000",
-//     borderRadius: 10,
-//     paddingHorizontal: 15,
-//     paddingVertical: 10,
-//     marginRight: 8,
-//   },
-//   modalOverlay: {
-//     flex: 1,
-//     backgroundColor: "rgba(0,0,0,0.5)",
-//     justifyContent: "flex-end",
-//   },
-//   modalContent: {
-//     backgroundColor: "#fff",
-//     borderTopLeftRadius: 15,
-//     borderTopRightRadius: 15,
-//     maxHeight: "70%",
-//     padding: 15,
-//   },
-//   modalTitle: {
-//     fontSize: 18,
-//     fontWeight: "bold",
-//     marginBottom: 12,
-//   },
-//   memberRow: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//     paddingVertical: 8,
-//     borderBottomWidth: 1,
-//     borderBottomColor: "#eee",
-//   },
-//   memberAvatar: {
-//     width: 40,
-//     height: 40,
-//     borderRadius: 20,
-//     marginRight: 12,
-//   },
-//   memberName: {
-//     fontSize: 16,
-//     color: "#333",
-//   },
-//   closeBtn: {
-//     backgroundColor: "#377355",
-//     padding: 12,
-//     borderRadius: 8,
-//     alignItems: "center",
-//     marginTop: 10,
+//   removeBtn: {
+//     position: "absolute",
+//     top: 1,
+//     right: -1,
+//     backgroundColor: "rgba(184, 15, 15, 0.7)",
+//     borderRadius: 12,
+//     padding: 2,
+//     zIndex: 10,
 //   },
 // });
