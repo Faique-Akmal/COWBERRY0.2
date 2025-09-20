@@ -188,7 +188,7 @@ const ChatListScreen = () => {
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", margin: 10, }}>
               <Text style={{ fontSize: 18, fontWeight: "800", color: "#FFF" }}>Groups</Text>
               <TouchableOpacity onPress={showGroupOptions}>
-                <Ionicons name="ellipsis-vertical" size={20} color="#FFF" />
+                <Ionicons name="ellipsis-vertical" size={30} color="#FFF" />
               </TouchableOpacity>
             </View>
 
