@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View, TouchableOpacity, ImageBackground } from 'react-native'
 import React from 'react'
-
+// COWBERRY0.2
 const About = ({ navigation }) => {
   return (
     <View style={styles.container}>
