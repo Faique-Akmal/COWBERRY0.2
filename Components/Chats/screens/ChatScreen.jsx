@@ -16,6 +16,7 @@ import {
   Alert,
   PermissionsAndroid,
   Linking,
+  Keyboard,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import Feather from "react-native-vector-icons/Feather";
@@ -33,7 +34,6 @@ import { launchImageLibrary } from "react-native-image-picker";
 import Geolocation from "react-native-geolocation-service";
 import RNFS from "react-native-fs";
 import { Video as VideoCompressor } from "react-native-compressor";
-import AnimatedBubbleLoading from "./DotLoader";
 import DotLoader from "./DotLoader";
 
 const UPLOAD_PATH = "/upload/";
@@ -261,12 +261,10 @@ function FloatingAttachmentMenu({
   const handleLocation = internalLocationHandler;
   const handleTheme = onThemePressProp ?? (() => toggle());
 
-  // Handler to remove an item from selectedMedia
   const removeSelectedMedia = useCallback((index) => {
     setSelectedMedia((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
-  // Handler to remove an item from selectedDocs
   const removeSelectedDoc = useCallback((index) => {
     setSelectedDocs((prev) => prev.filter((_, i) => i !== index));
   }, []);
@@ -303,7 +301,6 @@ function FloatingAttachmentMenu({
         ))}
       </Animated.View>
 
-      {/* Previews for media/docs/location */}
       {selectedMedia.length > 0 && (
         <View style={styles.previewBox}>
           <ScrollView horizontal>
@@ -403,16 +400,12 @@ export default function ChatScreen({ route }) {
   const flatListRef = useRef(null);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const connectedChatRef = useRef(null);
-
   const [pendingMedia, setPendingMedia] = useState([]);
   const [pendingDocs, setPendingDocs] = useState([]);
-
-  // Track if initial scroll has happened
-  const hasScrolledToBottom = useRef(false);
+  const [isAtBottom, setIsAtBottom] = useState(true);
   const sendTypingRef = useRef(null);
-
-  // Show loading state while messages are being fetched
   const [isLoadingMessages, setIsLoadingMessages] = useState(true);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   useEffect(() => {
     AsyncStorage.getItem("userId")
@@ -420,6 +413,26 @@ export default function ChatScreen({ route }) {
         if (id) setMyUserId(parseInt(id, 10));
       })
       .catch((e) => console.log("AsyncStorage error", e));
+  }, []);
+
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      (event) => {
+        setKeyboardHeight(event.endCoordinates.height);
+      }
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
   }, []);
 
   useEffect(() => {
@@ -469,45 +482,38 @@ export default function ChatScreen({ route }) {
     };
   }, [chatKey, chatInfo.chatId, isGroup, loadMessages]);
 
-// Function to safely scroll to bottom
-const scrollToBottom = useCallback((animated = true) => {
-  if (!flatListRef.current) {
-    console.warn("scrollToBottom: flatListRef is null, skipping scroll");
-    return;
-  }
-  if (messages.length === 0) return; // No need to scroll if no messages
-  try {
-    flatListRef.current.scrollToIndex({ index: 0, animated });
-  } catch (e) {
-    console.error("scrollToBottom error:", e);
-  }
-}, [messages.length]);
-
-// Scroll to bottom on initial render and when messages change
-useEffect(() => {
-  if (messages.length === 0 || isLoadingMessages) return;
-
-  const timer = setTimeout(() => {
-    if (flatListRef.current && !hasScrolledToBottom.current) {
-      scrollToBottom(false); // Non-animated for initial scroll
-      hasScrolledToBottom.current = true;
+  const scrollToBottom = useCallback((animated = true) => {
+    if (!flatListRef.current) {
+      console.warn("scrollToBottom: flatListRef is null, skipping scroll");
+      return;
     }
-  }, 300); // Keep the 300ms delay to allow FlatList to mount
-
-  return () => clearTimeout(timer);
-}, [messages.length, scrollToBottom, isLoadingMessages]);
-
-// Scroll to bottom when pending media, docs, or location change
-useEffect(() => {
-  if (isLoadingMessages) return; // Skip if still loading
-  const timer = setTimeout(() => {
-    if (flatListRef.current) {
-      scrollToBottom(true); // Animated for updates
+    if (messages.length === 0) return;
+    try {
+      flatListRef.current.scrollToIndex({ index: 0, animated });
+    } catch (e) {
+      console.error("scrollToBottom error:", e);
     }
-  }, 100);
+  }, [messages.length]);
 
-  return () => clearTimeout(timer);
-}, [pendingMedia, pendingDocs, pendingLocation, scrollToBottom, isLoadingMessages]);
+  useEffect(() => {
+    if (messages.length === 0 || isLoadingMessages) return;
+    const timer = setTimeout(() => {
+      if (flatListRef.current) {
+        scrollToBottom(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [isLoadingMessages]);
+
+  useEffect(() => {
+    if (isLoadingMessages) return;
+    const timer = setTimeout(() => {
+      if (flatListRef.current && isAtBottom) {
+        scrollToBottom(true);
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [pendingMedia, pendingDocs, pendingLocation, scrollToBottom, isLoadingMessages, isAtBottom]);
 
   useEffect(() => {
     sendTypingRef.current = debounce((isTyping) => {
@@ -692,7 +698,9 @@ useEffect(() => {
           setReplyTo(null);
           setPendingMedia([]);
           setPendingDocs([]);
-          scrollToBottom(true); // Scroll to bottom after sending attachments
+          if (isAtBottom) {
+            scrollToBottom(true);
+          }
         } else {
           console.warn("sendMessage: uploadAndSendAttachments returned false");
         }
@@ -717,7 +725,9 @@ useEffect(() => {
           setInput("");
           setReplyTo(null);
           setPendingLocation(null);
-          scrollToBottom(true); // Scroll to bottom after sending location
+          if (isAtBottom) {
+            scrollToBottom(true);
+          }
         } catch (e) {
           console.error("sendMessage -> sendJson location error", e);
           Alert.alert("Send failed", "Could not send location.");
@@ -742,7 +752,9 @@ useEffect(() => {
         sendJson(textPayload);
         setInput("");
         setReplyTo(null);
-        scrollToBottom(true); // Scroll to bottom after sending text
+        if (isAtBottom) {
+          scrollToBottom(true);
+        }
       } catch (e) {
         console.error("sendMessage -> sendJson text error", e);
         Alert.alert("Send failed", "Could not send message.");
@@ -763,6 +775,7 @@ useEffect(() => {
     uploadAndSendAttachments,
     toArray,
     scrollToBottom,
+    isAtBottom,
   ]);
 
   const renderMessage = ({ item }) => {
@@ -782,43 +795,32 @@ useEffect(() => {
       });
   };
 
-  // Handler to remove an item from pendingMedia
   const removePendingMedia = useCallback((index) => {
     setPendingMedia((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
-  // Handler to remove an item from pendingDocs
   const removePendingDoc = useCallback((index) => {
     setPendingDocs((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
-  // Render loading indicator
-const renderLoading = () => (
-  <DotLoader />
-);
+  const renderLoading = () => <DotLoader />;
 
-// calculate offset
-const keyboardOffset = Platform.select({
-  ios: 43,
-  android: 0,
-});
+  const baseBottomOffset = Platform.select({ ios: 130, android: 110 });
+  const keyboardOffset = Platform.select({ ios: 43, android: 0 });
 
   return (
     <ImageBackground source={require("../../images/123.png")} style={{ flex: 1 }} resizeMode="cover">
       <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.1)" }} />
-
-<KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={keyboardOffset}
-    >
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={keyboardOffset}
+      >
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 10 }}>
             <Ionicons name="arrow-back" size={26} color="#377355" />
           </TouchableOpacity>
-
           <Text style={styles.headerTitle}>{chatInfo.chatName}</Text>
-
           {isGroup && (
             <View style={styles.headerRight}>
               <Text style={styles.groupInfoText}>Group Info</Text>
@@ -836,36 +838,33 @@ const keyboardOffset = Platform.select({
         ) : (
           <FlatList
             ref={flatListRef}
-            data={messages.slice().reverse()} // Reverse messages for inverted display
+            data={messages.slice().reverse()}
             keyExtractor={(item, index) => `${item.id ?? "idx-" + index}`}
             renderItem={renderMessage}
             contentContainerStyle={{ padding: 10, flexGrow: 1 }}
-            inverted // Invert the list to show latest messages at the bottom
-            initialNumToRender={10} // Reduced to 10 for faster initial render
-            maxToRenderPerBatch={5} // Smaller batches for smoother rendering
-            windowSize={10} // Smaller window to reduce memory usage
-            removeClippedSubviews={true} // Clip off-screen views to improve performance
-            updateCellsBatchingPeriod={50} // Batch updates for smoother scrolling
-            initialScrollIndex={0} // Start at bottom (index 0 in inverted list)
+            inverted
+            initialNumToRender={10}
+            maxToRenderPerBatch={5}
+            windowSize={10}
+            removeClippedSubviews={true}
+            updateCellsBatchingPeriod={50}
+            initialScrollIndex={0}
             maintainVisibleContentPosition={{
               minIndexForVisible: 0,
               autoscrollThreshold: 100,
-            }} // Maintain position during updates to reduce blink
-            onContentSizeChange={() => {
-              if (hasScrolledToBottom.current) {
-                scrollToBottom(true);
-              }
             }}
-            onLayout={() => {
-              if (!hasScrolledToBottom.current && !isLoadingMessages) {
-                scrollToBottom(false);
-                hasScrolledToBottom.current = true;
+            onScroll={(event) => {
+              const offset = event.nativeEvent.contentOffset.y;
+              setIsAtBottom(offset <= 100);
+            }}
+            onContentSizeChange={() => {
+              if (isAtBottom) {
+                scrollToBottom(true);
               }
             }}
           />
         )}
 
-        {/* Pending media preview */}
         {pendingMedia && pendingMedia.length > 0 && (
           <View style={styles.previewBox}>
             <ScrollView horizontal>
@@ -896,7 +895,6 @@ const keyboardOffset = Platform.select({
           </View>
         )}
 
-        {/* Pending docs preview */}
         {pendingDocs && pendingDocs.length > 0 && (
           <View style={styles.previewBox}>
             <ScrollView horizontal>
@@ -917,7 +915,6 @@ const keyboardOffset = Platform.select({
           </View>
         )}
 
-        {/* Location pending preview */}
         {pendingLocation && (
           <View style={styles.pendingLocationBox}>
             <TouchableOpacity onPress={() => openMaps(pendingLocation.latitude, pendingLocation.longitude)} style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
@@ -937,30 +934,16 @@ const keyboardOffset = Platform.select({
                 </Text>
               </View>
             </TouchableOpacity>
-
             <TouchableOpacity onPress={() => setPendingLocation(null)} style={styles.removeLocationBtn}>
               <Feather name="x" size={18} color="#fff" />
             </TouchableOpacity>
           </View>
         )}
 
-        <FloatingAttachmentMenu
-          show={showAttachmentMenu}
-          toggle={() => setShowAttachmentMenu((s) => !s)}
-          bottomOffset={Platform.select({ ios: 130, android: 110 })}
-          dropDistance={70}
-          chatId={chatInfo.chatId}
-          chatType={chatInfo.chatType}
-          onImagePress={handleMediaChosen}
-          onDocPress={handleDocsChosen}
-          onLocationPress={handleLocationChosen}
-        />
-
         <View style={styles.inputRow}>
           <TouchableOpacity style={{ marginRight: 8 }} onPress={() => setShowAttachmentMenu((s) => !s)}>
             <MaterialCommunityIcons name="dots-grid" size={30} color="#377355" />
           </TouchableOpacity>
-
           <TextInput
             style={styles.input}
             value={input}
@@ -974,6 +957,18 @@ const keyboardOffset = Platform.select({
             <Ionicons name="send" size={24} color="#377355" />
           </TouchableOpacity>
         </View>
+
+        <FloatingAttachmentMenu
+          show={showAttachmentMenu}
+          toggle={() => setShowAttachmentMenu((s) => !s)}
+          bottomOffset={baseBottomOffset + keyboardHeight}
+          dropDistance={70}
+          chatId={chatInfo.chatId}
+          chatType={chatInfo.chatType}
+          onImagePress={handleMediaChosen}
+          onDocPress={handleDocsChosen}
+          onLocationPress={handleLocationChosen}
+        />
       </KeyboardAvoidingView>
 
       <Modal visible={showMembers} animationType="slide" transparent>
@@ -1144,6 +1139,12 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
 });
+
+
+
+
+
+// 9dot and keyboard ke problem ko solve karne se pahle ka code aur isme sab thik hai
 
 // import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 // import {
@@ -1554,8 +1555,8 @@ const styles = StyleSheet.create({
 //   const [pendingMedia, setPendingMedia] = useState([]);
 //   const [pendingDocs, setPendingDocs] = useState([]);
 
-//   // Track if initial scroll has happened
-//   const hasScrolledToBottom = useRef(false);
+//   // Track if at bottom for auto-scroll
+//   const [isAtBottom, setIsAtBottom] = useState(true);
 //   const sendTypingRef = useRef(null);
 
 //   // Show loading state while messages are being fetched
@@ -1630,31 +1631,30 @@ const styles = StyleSheet.create({
 //   }
 // }, [messages.length]);
 
-// // Scroll to bottom on initial render and when messages change
+// // Scroll to bottom on initial render only
 // useEffect(() => {
 //   if (messages.length === 0 || isLoadingMessages) return;
 
 //   const timer = setTimeout(() => {
-//     if (flatListRef.current && !hasScrolledToBottom.current) {
+//     if (flatListRef.current) {
 //       scrollToBottom(false); // Non-animated for initial scroll
-//       hasScrolledToBottom.current = true;
 //     }
 //   }, 300); // Keep the 300ms delay to allow FlatList to mount
 
 //   return () => clearTimeout(timer);
-// }, [messages.length, scrollToBottom, isLoadingMessages]);
+// }, [isLoadingMessages]); // Depend only on isLoadingMessages to run once after loading
 
-// // Scroll to bottom when pending media, docs, or location change
+// // Scroll to bottom when pending media, docs, or location change (only if at bottom)
 // useEffect(() => {
 //   if (isLoadingMessages) return; // Skip if still loading
 //   const timer = setTimeout(() => {
-//     if (flatListRef.current) {
+//     if (flatListRef.current && isAtBottom) {
 //       scrollToBottom(true); // Animated for updates
 //     }
 //   }, 100);
 
 //   return () => clearTimeout(timer);
-// }, [pendingMedia, pendingDocs, pendingLocation, scrollToBottom, isLoadingMessages]);
+// }, [pendingMedia, pendingDocs, pendingLocation, scrollToBottom, isLoadingMessages, isAtBottom]);
 
 //   useEffect(() => {
 //     sendTypingRef.current = debounce((isTyping) => {
@@ -1839,7 +1839,9 @@ const styles = StyleSheet.create({
 //           setReplyTo(null);
 //           setPendingMedia([]);
 //           setPendingDocs([]);
-//           scrollToBottom(true); // Scroll to bottom after sending attachments
+//           if (isAtBottom) {
+//             scrollToBottom(true); // Scroll to bottom after sending attachments only if at bottom
+//           }
 //         } else {
 //           console.warn("sendMessage: uploadAndSendAttachments returned false");
 //         }
@@ -1864,7 +1866,9 @@ const styles = StyleSheet.create({
 //           setInput("");
 //           setReplyTo(null);
 //           setPendingLocation(null);
-//           scrollToBottom(true); // Scroll to bottom after sending location
+//           if (isAtBottom) {
+//             scrollToBottom(true); // Scroll to bottom after sending location only if at bottom
+//           }
 //         } catch (e) {
 //           console.error("sendMessage -> sendJson location error", e);
 //           Alert.alert("Send failed", "Could not send location.");
@@ -1889,7 +1893,9 @@ const styles = StyleSheet.create({
 //         sendJson(textPayload);
 //         setInput("");
 //         setReplyTo(null);
-//         scrollToBottom(true); // Scroll to bottom after sending text
+//         if (isAtBottom) {
+//           scrollToBottom(true); // Scroll to bottom after sending text only if at bottom
+//         }
 //       } catch (e) {
 //         console.error("sendMessage -> sendJson text error", e);
 //         Alert.alert("Send failed", "Could not send message.");
@@ -1910,6 +1916,7 @@ const styles = StyleSheet.create({
 //     uploadAndSendAttachments,
 //     toArray,
 //     scrollToBottom,
+//     isAtBottom,
 //   ]);
 
 //   const renderMessage = ({ item }) => {
@@ -1998,15 +2005,13 @@ const styles = StyleSheet.create({
 //               minIndexForVisible: 0,
 //               autoscrollThreshold: 100,
 //             }} // Maintain position during updates to reduce blink
-//             onContentSizeChange={() => {
-//               if (hasScrolledToBottom.current) {
-//                 scrollToBottom(true);
-//               }
+//             onScroll={(event) => {
+//               const offset = event.nativeEvent.contentOffset.y;
+//               setIsAtBottom(offset <= 100); // Consider at bottom if offset is small (threshold 100)
 //             }}
-//             onLayout={() => {
-//               if (!hasScrolledToBottom.current && !isLoadingMessages) {
-//                 scrollToBottom(false);
-//                 hasScrolledToBottom.current = true;
+//             onContentSizeChange={() => {
+//               if (isAtBottom) {
+//                 scrollToBottom(true);
 //               }
 //             }}
 //           />
@@ -2291,5 +2296,3 @@ const styles = StyleSheet.create({
 //     zIndex: 10,
 //   },
 // });
-
-
