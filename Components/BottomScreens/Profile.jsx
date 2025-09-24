@@ -29,11 +29,24 @@ export default function Home({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
 
   // Common function for fetch
+  // Fetch Data
   const fetchData = async () => {
     try {
-      const userRes = await axiosInstance.get("/me/");
-      setUserData(userRes.data);
+      // 👇 Changed API for user data
+      const userRes = await axiosInstance.get("/cowberry_app.api.me.me_api");
+      const user = userRes.data.message.user; // extract user object
 
+      setUserData({
+        id: user.id,
+        email: user.email,
+        full_name: user.full_name,
+        role: user.roles?.[1] || "", 
+        employee_id: user.employee_id,
+        is_checkin: user.is_checkin,
+        last_checkin_time: user.last_checkin_time,
+      });
+
+      // Task API remains the same
       const taskRes = await axiosInstance.get("/tasks/");
       const tasks = taskRes.data.results;
 
@@ -50,12 +63,13 @@ export default function Home({ navigation }) {
 
       setTaskStats({ total, completed, active, due, progress });
     } catch (err) {
-      console.log(" Error fetching data:", err);
+      console.log("❌ Error fetching data:", err);
     } finally {
       setLoading(false);
-      setRefreshing(false); // stop refresh after API call
+      setRefreshing(false);
     }
   };
+
 
   //  Initial fetch
   useEffect(() => {
@@ -117,11 +131,11 @@ export default function Home({ navigation }) {
         }
       >
         <View style={styles.container}>
+        
           {/* Greeting */}
           <View style={styles.greetingBox}>
             <Text style={styles.greetingText}>
-              Hey,{" "}
-              {userData?.first_name?.toUpperCase() || userData?.username}
+              Hey, {userData?.full_name?.toUpperCase() || userData?.email}
             </Text>
             <Text style={styles.tagline}>
               Cowberry is glad to have you onboard!
@@ -135,18 +149,24 @@ export default function Home({ navigation }) {
           <View style={styles.profileCard}>
             <Avatar.Text
               size={50}
-              label={userData?.first_name?.charAt(0) || "U"}
+              label={userData?.full_name?.charAt(0) || "U"}
             />
-            <Text style={styles.name}>{userData?.username}</Text>
-            <Text style={styles.role}>{userData?.role}</Text>
-            <Text style={styles.location}>{userData?.address}</Text>
+            <Text style={styles.name}>{userData?.full_name}</Text>
+            <View style={styles.roleContainer}>
+    <Text style={styles.role}>Role : {userData?.role}</Text>
+    <Text style={styles.employeeId}>Employee ID : {userData?.employee_id}</Text>
+  </View>
             <TouchableOpacity
               style={styles.editBtn}>
-              <Text style={styles.editText}
-                onPress={() => navigation.navigate("UpdateProfile", { userData: userData })}
-              >Edit</Text>
+              <Text
+                style={styles.editText}
+                onPress={() => navigation.navigate("UpdateProfile", { userData })}
+              >
+                Edit
+              </Text>
             </TouchableOpacity>
           </View>
+
 
           {/* Task Updates (Dynamic) */}
           <Text style={styles.taskHeading}>TASK UPDATES</Text>
@@ -279,15 +299,31 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginTop: 10,
   },
-  role: {
-    fontSize: 14,
-    color: "#777",
-  },
-  location: {
-    fontSize: 12,
-    color: "#777",
-    marginBottom: 10,
-  },
+roleContainer: {
+  marginTop: 8,
+  alignItems: "flex-start",
+  width: "100%",
+},
+role: {
+  fontSize: 14,
+  fontWeight: "600",
+  color: "#444",
+  marginBottom: 4,
+  alignSelf:"center"
+},
+employeeId: {
+  fontSize: 14,
+  fontWeight: "600",
+  color: "#444",
+  alignSelf:"center"
+},
+
+location: {
+  fontSize: 14,
+  color: "#777",
+  marginTop: 2,
+},
+
   editBtn: {
     flexDirection: "row",
     alignItems: "center",

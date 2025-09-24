@@ -20,150 +20,60 @@ import { API_URL } from '@env';
 import { ensureFreshToken } from "../TokenHandling/authUtils";
 import { afterLogin } from "../native/afterLogin"; // 👈 new import
 import { sendTokenToNative } from "../native/sendTokenToNative";
-
+import { setNativeSession } from '../native/LocationBridge';
 
 const { LocationServiceBridge } = NativeModules;
 
 const LoginScreen = ({ navigation }) => {
-  const [employeeCode, setEmployeeCode] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [secureText, setSecureText] = useState(true);
 
-  // const handleLogin = async () => {
-  //   if (!employeeCode || !password) {
-  //     Alert.alert('Error', 'Please enter both fields');
-  //     return;
-  //   }
-
-  //   try {
-      
-  //     const response = await axios.post(`${API_URL}/login/`, {
-  //       employee_code: employeeCode,
-  //       password: password,
-  //     });
-
-
-  //     const data = response.data;
-
-  //     await AsyncStorage.setItem('accessToken', data.access);
-  //     await AsyncStorage.setItem('refreshToken', data.refresh);
-  //     await ensureFreshToken();
-  //     await AsyncStorage.setItem('username', data.username);
-  //     await AsyncStorage.setItem('email', data.email);
-  //     await AsyncStorage.setItem('role', data.role);
-  //     await AsyncStorage.setItem('employee_code', data.employee_code);
-
-
-  //     if (data.is_employee_code_verified) {
-  //       // Alert.alert('Success', data.message || 'Login Successful');
-  //       navigation.replace('DrawerScreen');
-  //     } else {
-  //       navigation.navigate('OTPVerificationScreen', {
-  //         refreshToken: data.refresh,
-  //         employee_code: data.employee_code,
-  //       });
-
-  //     }
-
-  //   } catch (error) {
-  //     console.error('Login Error:', error.response?.data || error.message);
-  //     const errorMsg =
-  //       error.response?.data?.message || 'Invalid credentials or server error';
-  //     Alert.alert('Login Failed', errorMsg);
-  //   }
-  // };
-
-  const handleLogin = async () => {
-  if (!employeeCode || !password) {
+const handleLogin = async () => {
+  if (!username || !password) {
     Alert.alert("Error", "Please enter both fields");
     return;
   }
 
   try {
-    const response = await axios.post(`${API_URL}/login/`, {
-      employee_code: employeeCode,
-      password: password,
+    const response = await axios.post(`${API_URL}/cowberry_app.api.api.login`, {
+      username,
+      password,
     });
 
     const data = response.data;
+  console.log(data?.message?.sid);
+  
+if (data?.message?.sid) {
+  // Save SID in AsyncStorage
+  await AsyncStorage.setItem("sid", data.message.sid);
+  await AsyncStorage.setItem("username", data.message.user.full_name || "");
+  await AsyncStorage.setItem("email", data.message.user.email || "");
 
-    // ✅ save tokens and other details
-// store RAW token (no "Bearer " prefix)
-await AsyncStorage.setItem("accessToken", data.access); // raw JWT
-await AsyncStorage.setItem("refreshToken", data.refresh);
-await AsyncStorage.setItem("userId", String(data.id));
-await AsyncStorage.setItem("username", data.username);
-await AsyncStorage.setItem("email", data.email);
-await AsyncStorage.setItem("role", data.role);
-await AsyncStorage.setItem("employee_code", data.employee_code);
+  // NEW: push sid to native immediately (await it)
+  try {
+    const sessionSet = await setNativeSession(data.message.sid);
+    console.log('DBG: setNativeSession result ->', sessionSet);
+  } catch (e) {
+    console.warn('DBG: setNativeSession error', e);
+  }
 
-// update native with raw token, refresh token & userId
-// send both tokens to native
-try {
-  if (LocationServiceBridge && LocationServiceBridge.setAuthToken) {
-    await LocationServiceBridge.setAuthToken(data.access);
-  }
-  if (LocationServiceBridge && LocationServiceBridge.setRefreshToken) {
-    await LocationServiceBridge.setRefreshToken(data.refresh);
-  }
-  if (LocationServiceBridge && LocationServiceBridge.setUserId) {
-    await LocationServiceBridge.setUserId(String(data.id));
-  }
-  console.log("===DBG=== Sent access & refresh token to native");
-} catch (e) {
-  console.warn("===DBG=== Failed to send tokens to native:", e);
+  // Navigate to DrawerScreen
+  navigation.reset({
+    index: 0,
+    routes: [{ name: "DrawerScreen" }],
+  });
+} else {
+  Alert.alert("Login Failed", "Invalid response from server");
 }
 
-// continue app flow
-// continue app flow (safe)
-// try {
-//   if (typeof afterLogin === "function") {
-//     await afterLogin(data.id);
-//     console.log("===DBG=== afterLogin called successfully");
-//   } else {
-//     console.warn("===DBG=== afterLogin is not a function:", typeof afterLogin);
-//   }
-// } catch (err) {
-//   console.warn("===DBG=== afterLogin error", err);
-// }
-
-
-
-// optional: you can call ensureFreshToken() here but it's redundant immediately after login
-// because you just saved a fresh token from the server. If you keep it, make sure it DOES NOT
-// overwrite the fresh token erroneously.
-
-
-
-
-    
- 
-// const { LocationServiceBridge } = NativeModules;
-// // start or update interval - example:
-// if (LocationServiceBridge && LocationServiceBridge.updateInterval) {
-//   await LocationServiceBridge.updateInterval(120); // or backend interval
-// }
-// if (LocationServiceBridge && LocationServiceBridge.startTracking) {
-//   await LocationServiceBridge.startTracking();
-// }
-
-
-
-    if (data.is_employee_code_verified) {
-      navigation.replace("DrawerScreen");
-    } else {
-      navigation.navigate("OTPVerificationScreen", {
-        refreshToken: data.refresh,
-        employee_code: data.employee_code,
-      });
-    }
   } catch (error) {
     console.error("Login Error:", error.response?.data || error.message);
-    const errorMsg =
-      error.response?.data?.message || "Invalid credentials or server error";
-    Alert.alert("Login Failed", errorMsg);
+    Alert.alert("Login Failed", "Invalid credentials or server error");
   }
 };
+
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -182,9 +92,9 @@ try {
           <View style={styles.inputContainer}>
             <Ionicons name="person-outline" size={20} color="#555" style={styles.icon} />
             <TextInput
-              placeholder="Employee Code"
-              value={employeeCode}
-              onChangeText={setEmployeeCode}
+              placeholder="Username"
+              value={username}
+              onChangeText={setUsername}
               style={styles.input}
               placeholderTextColor="#888"
             />

@@ -20,12 +20,12 @@ const Attendance = ({ navigation }) => {
 
 
       <View style={styles.overlay}>
-        {/* <TouchableOpacity
+        <TouchableOpacity
           style={styles.button}
-          onPress={() => navigation.navigate('AttendanceStart')}
+          onPress={() => navigation.navigate('EmployeeCheckinForm')}
         >
-          <Text style={styles.buttonText}>Start Attendance Task</Text>
-        </TouchableOpacity> */}
+          <Text style={styles.buttonText}>Employee Checkin</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.button, styles.endButton]}

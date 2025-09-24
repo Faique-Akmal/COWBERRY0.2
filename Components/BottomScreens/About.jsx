@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View, TouchableOpacity, ImageBackground } from 'react-native'
 import React from 'react'
 // COWBERRY0.2
-const About = ({ navigation }) => {
+const About = () => {
   return (
     <View style={styles.container}>
       {/* Image with reduced opacity */}
@@ -16,13 +16,6 @@ const About = ({ navigation }) => {
       {/* Text and button on top */}
       <View style={styles.overlay}>
         <Text style={styles.title}>Welcome to About Screen</Text>
-
-        {/* <TouchableOpacity
-          style={styles.button}
-          onPress={() => navigation.navigate('LogIn')}
-        >
-          <Text style={styles.buttonText}>Go to LogIn</Text>
-        </TouchableOpacity> */}
       </View>
     </View>
   )
@@ -43,7 +36,7 @@ const styles = StyleSheet.create({
   },
   imageOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)', 
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
   },
   overlay: {
     flex: 1,
