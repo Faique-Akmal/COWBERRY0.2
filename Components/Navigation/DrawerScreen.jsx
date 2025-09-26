@@ -46,38 +46,7 @@ const DrawerLeftHeader = () => {
 const DrawerScreen = () => {
   const navigation = useNavigation();
 
-  // useEffect(() => {
-  //   const loadData = async () => {
-  //     await ensureFreshToken();
-  //     try {
-  //       const res = await axiosInstance.get('/me/');
-  //       console.log('User Data:', res.data);
-
-  //       if (res.data?.id !== undefined && res.data?.id !== null) {
-  //         await AsyncStorage.setItem('userId', res.data.id.toString());
-  //         console.log('🆔 User ID stored:', res.data.id);
-  //       } else {
-  //         console.warn('⚠️ API ne id return nahi kiya');
-  //       }
-
-  //       // ✅ Attendance Guard Logic
-  //       const { is_attendance_started, is_attendance_ended } = res.data;
-
-  //       if (!is_attendance_started || is_attendance_ended) {
-  //         Alert.alert(
-  //           "Attendance Required",
-  //           "Please start attendance before accessing dashboard.",
-  //           [{ text: "OK", onPress: () => navigation.replace('AttendanceStart') }]
-  //         );
-  //       }
-  //     } catch (err) {
-  //       console.log('Error fetching user details:', err);
-  //     }
-  //   };
-
-  //   loadData();
-  // }, []);
-
+  
   useEffect(() => {
     const checkAndRequestPermissions = async () => {
       if (Platform.OS === 'ios') {

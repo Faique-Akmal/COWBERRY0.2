@@ -15,7 +15,7 @@ const Home = () => {
 
       {/* Text and button on top */}
       <View style={styles.overlay}>
-        <Text style={styles.title}>Welcome to About Home</Text>
+        <Text style={styles.title}>Welcome to Home</Text>
       </View>
     </View>
   )
