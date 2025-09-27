@@ -292,93 +292,167 @@ export default function MyTask({ navigation }) {
     });
   };
 
-  const renderItem = ({ item }) => {
-    // Normalize status to show consistent badges
-    const status = (item.status || "").toString();
-    const statusLower = status.toLowerCase();
-    const isWorking = statusLower === "working" || statusLower === "in progress";
-    const isCompleted = statusLower === "completed" || statusLower === "done";
+  // const renderItem = ({ item }) => {
+  //   // Normalize status to show consistent badges
+  //   const status = (item.status || "").toString();
+  //   const statusLower = status.toLowerCase();
+  //   const isWorking = statusLower === "working" || statusLower === "in progress";
+  //   const isCompleted = statusLower === "completed" || statusLower === "done";
 
-    const statusColor = isCompleted ? "#2e7d32" : isWorking ? "#ff9800" : "#b22222";
+  //   const statusColor = isCompleted ? "#2e7d32" : isWorking ? "#ff9800" : "#b22222";
 
-    // Ensure progress number between 0-100
-    let progressNum = 0;
-    if (item.progress !== undefined && item.progress !== null) {
-      progressNum = Number(item.progress) || 0;
-      if (progressNum < 0) progressNum = 0;
-      if (progressNum > 100) progressNum = 100;
-    }
+  //   // Ensure progress number between 0-100
+  //   let progressNum = 0;
+  //   if (item.progress !== undefined && item.progress !== null) {
+  //     progressNum = Number(item.progress) || 0;
+  //     if (progressNum < 0) progressNum = 0;
+  //     if (progressNum > 100) progressNum = 100;
+  //   }
 
-    const hasLocation = !!(item.dest_lat && item.dest_lng);
+  //   const hasLocation = !!(item.dest_lat && item.dest_lng);
 
-    return (
+  //   return (
 
-      <View style={styles.card}>
-        <Text style={styles.title}>{item.subject || item.name}</Text>
-        <Text style={styles.small}>Task ID: {item.name}</Text>
+  //     <View style={styles.card}>
+  //       <Text style={styles.title}>{item.subject || item.name}</Text>
+  //       <Text style={styles.small}>Task ID: {item.name}</Text>
 
-        <Text style={styles.desc}>{item.description}</Text>
+  //       <Text style={styles.desc}>{item.description}</Text>
 
-        <View style={styles.row}>
-          <Text style={styles.meta}>Start: {item.exp_start_date || "-"}</Text>
-          <Text style={styles.meta}>End: {item.exp_end_date || "-"}</Text>
-        </View>
+  //       <View style={styles.row}>
+  //         <Text style={styles.meta}>Start: {item.exp_start_date || "-"}</Text>
+  //         <Text style={styles.meta}>End: {item.exp_end_date || "-"}</Text>
+  //       </View>
 
-        <Text style={styles.meta}>priority: {item.priority || "-"}</Text>
+  //       <Text style={styles.meta}>priority: {item.priority || "-"}</Text>
 
-        <View style={[styles.statusBox, { backgroundColor: "#fff" }]}>
-          <Text style={[styles.statusText, { color: statusColor }]}>
-            {isCompleted ? "Completed" : isWorking ? "Working" : status || "Unknown"}
-          </Text>
-        </View>
+  //       <View style={[styles.statusBox, { backgroundColor: "#fff" }]}>
+  //         <Text style={[styles.statusText, { color: statusColor }]}>
+  //           {isCompleted ? "Completed" : isWorking ? "Working" : status || "Unknown"}
+  //         </Text>
+  //       </View>
 
-        {/* Progress bar + percent */}
-        <View style={{ marginTop: 10 }}>
-          <Text style={{ fontSize: 12, color: "#FFF", marginBottom: 6 }}>
-            Progress: {progressNum}%
-          </Text>
+  //       {/* Progress bar + percent */}
+  //       <View style={{ marginTop: 10 }}>
+  //         <Text style={{ fontSize: 12, color: "#FFF", marginBottom: 6 }}>
+  //           Progress: {progressNum}%
+  //         </Text>
 
-          <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${progressNum}%` }]} />
-          </View>
-        </View>
+  //         <View style={styles.progressTrack}>
+  //           <View style={[styles.progressFill, { width: `${progressNum}%` }]} />
+  //         </View>
+  //       </View>
 
-        <View style={styles.buttonsRow}>
-          {hasLocation ? (
-            <TouchableOpacity
-              style={styles.mapButton}
-              onPress={() => openInGoogleMaps(item.dest_lat, item.dest_lng)}
-            >
-              <Text style={styles.mapButtonText}>Start Task</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={[styles.mapButton, styles.mapButtonDisabled]}
-              onPress={() => Alert.alert("No location", "This task has no coordinates")}
-            >
-              <Text style={styles.mapButtonText}>No Location</Text>
-            </TouchableOpacity>
-          )}
+  //       <View style={styles.buttonsRow}>
+  //         {hasLocation ? (
+  //           <TouchableOpacity
+  //             style={styles.mapButton}
+  //             onPress={() => openInGoogleMaps(item.dest_lat, item.dest_lng)}
+  //           >
+  //             <Text style={styles.mapButtonText}>Start Task</Text>
+  //           </TouchableOpacity>
+  //         ) : (
+  //           <TouchableOpacity
+  //             style={[styles.mapButton, styles.mapButtonDisabled]}
+  //             onPress={() => Alert.alert("No location", "This task has no coordinates")}
+  //           >
+  //             <Text style={styles.mapButtonText}>No Location</Text>
+  //           </TouchableOpacity>
+  //         )}
 
-          {/* pass status & progress so Update screen pre-fills */}
-          <TouchableOpacity
-            style={[styles.mapButton, { marginLeft: 10 }]}
-            onPress={() =>
-              navigation.navigate("UpdateStartTask", {
-                taskName: item.name,
-                status: item.status,
-                progress: item.progress,
-              })
-            }
-          >
-            <Text style={styles.mapButtonText}>Update Task</Text>
-          </TouchableOpacity>
+  //         {/* pass status & progress so Update screen pre-fills */}
+  //         <TouchableOpacity
+  //           style={[styles.mapButton, { marginLeft: 10 }]}
+  //           onPress={() =>
+  //             navigation.navigate("UpdateStartTask", {
+  //               taskName: item.name,
+  //               status: item.status,
+  //               progress: item.progress,
+  //             })
+  //           }
+  //         >
+  //           <Text style={styles.mapButtonText}>Update Task</Text>
+  //         </TouchableOpacity>
+  //       </View>
+  //     </View>
+
+  //   );
+  // };
+const renderItem = ({ item }) => {
+  // Normalize status to show consistent badges
+  const status = (item.status || "").toString();
+  const statusLower = status.toLowerCase();
+  const isWorking = statusLower === "working" || statusLower === "in progress";
+  const isCompleted = statusLower === "completed" || statusLower === "done";
+
+  const statusColor = isCompleted ? "#2e7d32" : isWorking ? "#D4A017" : "#b22222";
+
+  // Ensure progress number between 0-100
+  let progressNum = 0;
+  if (item.progress !== undefined && item.progress !== null) {
+    progressNum = Number(item.progress) || 0;
+    if (progressNum < 0) progressNum = 0;
+    if (progressNum > 100) progressNum = 100;
+  }
+
+  const hasLocation = !!(item.dest_lat && item.dest_lng);
+
+  return (
+    <View style={styles.card}>
+      <Text style={styles.title}>{item.subject || item.name}</Text>
+      <Text style={styles.small}>Task ID: {item.name}</Text>
+      <Text style={styles.desc}>{item.description}</Text>
+      <View style={styles.row}>
+        <Text style={styles.meta}>Start: {item.exp_start_date || "-"}</Text>
+        <Text style={styles.meta}>End: {item.exp_end_date || "-"}</Text>
+      </View>
+      <Text style={styles.meta}>priority: {item.priority || "-"}</Text>
+      <View style={[styles.statusBox, { backgroundColor: statusColor }]}>
+        <Text style={[styles.statusText, { color: "#fff" }]}> {/* White text for contrast */}
+          {isCompleted ? "Completed" : isWorking ? "Working" : status || "Unknown"}
+        </Text>
+      </View>
+      {/* Progress bar + percent */}
+      <View style={{ marginTop: 10 }}>
+        <Text style={{ fontSize: 12, color: "#FFF", marginBottom: 6 }}>
+          Progress: {progressNum}%
+        </Text>
+        <View style={styles.progressTrack}>
+          <View style={[styles.progressFill, { width: `${progressNum}%` }]} />
         </View>
       </View>
-
-    );
-  };
-
+      <View style={styles.buttonsRow}>
+        {hasLocation ? (
+          <TouchableOpacity
+            style={styles.mapButton}
+            onPress={() => openInGoogleMaps(item.dest_lat, item.dest_lng)}
+          >
+            <Text style={styles.mapButtonText}>Start Task</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[styles.mapButton, styles.mapButtonDisabled]}
+            onPress={() => Alert.alert("No location", "This task has no coordinates")}
+          >
+            <Text style={styles.mapButtonText}>No Location</Text>
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity
+          style={[styles.mapButton, { marginLeft: 10 }]}
+          onPress={() =>
+            navigation.navigate("UpdateStartTask", {
+              taskName: item.name,
+              status: item.status,
+              progress: item.progress,
+            })
+          }
+        >
+          <Text style={styles.mapButtonText}>Update Task</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
   if (loading && !refreshing) {
     return (
       <ImageBackground

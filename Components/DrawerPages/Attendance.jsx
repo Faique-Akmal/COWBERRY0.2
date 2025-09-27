@@ -1,6 +1,8 @@
 import { StyleSheet, Text, View, TouchableOpacity, ImageBackground, Image } from 'react-native'
 import React from 'react'
 import Ionicons from "react-native-vector-icons/Ionicons";
+import MaterialIcons from "react-native-vector-icons/MaterialIcons";
+
 
 const Attendance = ({ navigation }) => {
   return (
@@ -27,18 +29,19 @@ const Attendance = ({ navigation }) => {
             onPress={() => navigation.navigate('EmployeeCheckinForm')}
           >
             <View style={styles.buttonContent}>
-              <Ionicons name="log-in-outline" size={24} color="#fff" style={styles.buttonIcon} />
+             
               <View>
                 <Text style={styles.buttonText}>Employee CheckIn</Text>
-                <Text style={styles.buttonSubText}>Record your start time</Text>
+                {/* <Text style={styles.buttonSubText}>Record your start time</Text> */}
               </View>
+               <MaterialIcons name="keyboard-double-arrow-right" size={24} color="#fff" style={styles.buttonIcon} />
             </View>
           </TouchableOpacity>
         </View>
 
         <View style={styles.avatarContainer}>
           <Image
-            source={require('../images/Avtar-removebg-preview.png')}
+            source={require('../images/Avatar.png')}
             style={styles.avatar}
           />
         </View>

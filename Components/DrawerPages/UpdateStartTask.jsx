@@ -152,7 +152,7 @@
 //     flex: 1,
 //      padding: 20,
 //       backgroundColor: "#f4f6f9" ,
-     
+
 //     },
 
 //   backBtn: {
@@ -276,10 +276,60 @@ export default function UpdateTask({ route, navigation }) {
     return path;
   };
 
+  // const handleUpdate = async () => {
+  //   if (!taskId) return Alert.alert("Error", "Task ID missing");
+
+  //   // If Completed => ensure progress set to 100
+  //   let progressToSend = progress;
+  //   if (status === "Completed") {
+  //     progressToSend = "100";
+  //     setProgress("100");
+  //   }
+
+  //   if (progressToSend && isNaN(Number(progressToSend))) {
+  //     return Alert.alert("Error", "Progress must be numeric");
+  //   }
+
+  //   setIsSubmitting(true);
+  //   try {
+  //     const formData = new FormData();
+  //     formData.append("task_id", taskId);
+  //     formData.append("status", status);
+  //     formData.append("progress", progressToSend ? String(Number(progressToSend)) : "0");
+  //     formData.append("description", notes || "");
+  //     // include completed_at if provided
+  //     if (completedAt) formData.append("completed_at", formatDateTime(completedAt));
+
+  //     const methodName = "cowberry_app.api.tasks.update_task";
+  //     const path = buildMethodPath(methodName);
+
+  //     console.log("POST", path, "formData parts (if available):", formData._parts || "[not inspectable]");
+
+  //     const response = await axiosInstance.post(path, formData);
+  //     console.log("Update response:", response?.data);
+
+  //     const message = response?.data?.message?.message || "Task updated successfully";
+
+  //     // Navigate back to MyTask and request a refresh (replace "MyTask" if your route name differs)
+  //     navigation.navigate("MyTask", { refreshKey: Date.now() });
+
+  //     // show success toast/alert
+  //     Alert.alert("Success", message);
+  //   } catch (error) {
+  //     console.log("❌ Update error:", error?.response?.data || error?.toString?.());
+  //     const serverMsg = error?.response?.data || {};
+  //     const friendly =
+  //       serverMsg?.message?.message ||
+  //       serverMsg?.message ||
+  //       (serverMsg?.exc_type ? "Server validation error" : "Failed to update task");
+  //     Alert.alert("Error", String(friendly));
+  //   } finally {
+  //     setIsSubmitting(false);
+  //   }
+  // };
   const handleUpdate = async () => {
     if (!taskId) return Alert.alert("Error", "Task ID missing");
 
-    // If Completed => ensure progress set to 100
     let progressToSend = progress;
     if (status === "Completed") {
       progressToSend = "100";
@@ -292,31 +342,40 @@ export default function UpdateTask({ route, navigation }) {
 
     setIsSubmitting(true);
     try {
-      const formData = new FormData();
-      formData.append("task_id", taskId);
-      formData.append("status", status);
-      formData.append("progress", progressToSend ? String(Number(progressToSend)) : "0");
-      formData.append("description", notes || "");
-      // include completed_at if provided
-      if (completedAt) formData.append("completed_at", formatDateTime(completedAt));
+      const data = {
+        task_id: taskId,
+        status: status,
+        progress: progressToSend ? String(Number(progressToSend)) : "0",
+        description: notes || "",
+        completed_at: completedAt ? formatDateTime(completedAt) : "",
+      };
 
       const methodName = "cowberry_app.api.tasks.update_task";
       const path = buildMethodPath(methodName);
 
-      console.log("POST", path, "formData parts (if available):", formData._parts || "[not inspectable]");
+      console.log("POST", path, "Payload:", data);
 
-      const response = await axiosInstance.post(path, formData);
+      const response = await axiosInstance.post(path, data, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
       console.log("Update response:", response?.data);
 
       const message = response?.data?.message?.message || "Task updated successfully";
 
-      // Navigate back to MyTask and request a refresh (replace "MyTask" if your route name differs)
-      navigation.navigate("MyTask", { refreshKey: Date.now() });
-
-      // show success toast/alert
+      // Replace UpdateTask with MyTask
+      navigation.replace("MyTask", { refreshKey: Date.now() });
       Alert.alert("Success", message);
+      
     } catch (error) {
-      console.log("❌ Update error:", error?.response?.data || error?.toString?.());
+      console.log("❌ Update error details:", {
+        message: error.message,
+        code: error.code,
+        config: error.config,
+        response: error.response?.data,
+        stack: error.stack,
+      });
       const serverMsg = error?.response?.data || {};
       const friendly =
         serverMsg?.message?.message ||
@@ -327,7 +386,6 @@ export default function UpdateTask({ route, navigation }) {
       setIsSubmitting(false);
     }
   };
-
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}

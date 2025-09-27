@@ -1,10 +1,60 @@
-import { StyleSheet, Text, View, TouchableOpacity, ImageBackground } from 'react-native'
-import React from 'react'
-// COWBERRY0.2
+import { 
+  StyleSheet, 
+  Text, 
+  View, 
+  ImageBackground, 
+  Image, 
+  Animated, 
+  Easing, 
+  Dimensions 
+} from 'react-native'
+import React, { useEffect, useRef } from 'react' 
+
+const { width } = Dimensions.get('window');
+
+
+const TEXT_WIDTH = 350; 
+
 const Home = () => {
+  const scrollAnim = useRef(new Animated.Value(0)).current 
+
+  // 2. Animation Logic (Looping)
+  useEffect(() => {
+    // Scroll Animation Sequence
+    const startScrolling = () => {
+        Animated.loop(
+            Animated.sequence([
+                
+                Animated.timing(scrollAnim, {
+                    toValue: 1, 
+                    duration: 6000, 
+                    easing: Easing.linear,
+                    useNativeDriver: true, 
+                }),
+            ])
+        ).start();
+    };
+
+    startScrolling();
+  }, [scrollAnim]) 
+
+  
+  const animatedTranslateX = scrollAnim.interpolate({
+    inputRange: [0, 1], 
+    outputRange: [width, -TEXT_WIDTH], 
+  });
+  
+  
+  const animatedTextStyle = {
+    transform: [{ translateX: animatedTranslateX }],
+    position: 'absolute', 
+    left: 0,
+    top: 0,
+  };
+
+
   return (
     <View style={styles.container}>
-      {/* Image with reduced opacity */}
       <ImageBackground
         source={require('../images/123.png')}
         style={styles.background}
@@ -13,9 +63,26 @@ const Home = () => {
         <View style={styles.imageOverlay} />
       </ImageBackground>
 
-      {/* Text and button on top */}
+      {/* Content on top */}
       <View style={styles.overlay}>
-        <Text style={styles.title}>Welcome to Home</Text>
+        <Image
+          source={require('../images/HomeLogo.png')} 
+          style={styles.welcomeImage}
+          resizeMode="contain"
+        />
+
+       
+        <View style={styles.textContainer}> 
+            <Animated.Text 
+                style={[
+                    styles.title, 
+                    animatedTextStyle 
+                ]}
+            >
+                Welcome to Cowberry! 
+            </Animated.Text>
+        </View>
+       
       </View>
     </View>
   )
@@ -40,25 +107,30 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    marginTop: 50, 
+  },
+  welcomeImage: {
+    width: 350,  
+    height: 350,
+  },
+ 
+  textContainer: {
+    width: '100%', 
+    height: 50, 
+    overflow: 'hidden', 
+    justifyContent: 'center',
+   
+    
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 30,
-    color: '#000',
-  },
-  button: {
-    backgroundColor: '#377355',
-    paddingVertical: 12,
-    paddingHorizontal: 25,
-    borderRadius: 8,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 28, 
+    fontWeight: '900', 
+    color: '#377355', 
+    width: TEXT_WIDTH, 
+    textShadowColor: 'rgba(0, 0, 0, 0.3)', 
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
 })

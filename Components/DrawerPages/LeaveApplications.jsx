@@ -52,31 +52,56 @@ const ApplyLeavePage = ({ route }) => {
     ).padStart(2, '0')}`;
   };
 
-  const handleApplyLeave = async () => {
-    setLoading(true);
-    try {
-      const response = await axiosInstance.post('/cowberry_app.api.leave_api.apply_leave', {
-        employee: employeeCode,
-        leave_type: leaveType,
-        from_date: formatDate(fromDate),
-        to_date: formatDate(toDate),
-        half_day: halfDay,
-      });
+  // const handleApplyLeave = async () => {
+  //   setLoading(true);
+  //   try {
+  //     const response = await axiosInstance.post('/cowberry_app.api.leave_api.apply_leave', {
+  //       employee: employeeCode,
+  //       leave_type: leaveType,
+  //       from_date: formatDate(fromDate),
+  //       to_date: formatDate(toDate),
+  //       half_day: halfDay,
+  //     });
 
-      const data = response.data;
-      if (data.message?.leave) {
-        Alert.alert('Success', `Leave submitted successfully!\nLeave ID: ${data.message.leave}`);
-      } else {
-        Alert.alert('Info', JSON.stringify(data));
-      }
-    } catch (error) {
-      console.error(error);
-      const msg = error.response?.data?.message || 'Something went wrong';
-      Alert.alert('Error', typeof msg === 'string' ? msg : JSON.stringify(msg));
-    } finally {
-      setLoading(false);
+  //     const data = response.data;
+  //     if (data.message?.leave) {
+  //       Alert.alert('Success', `Leave submitted successfully!\nLeave ID: ${data.message.leave}`);
+  //     } else {
+  //       Alert.alert('Info', JSON.stringify(data));
+  //     }
+  //   } catch (error) {
+  //     console.error(error);
+  //     const msg = error.response?.data?.message || 'Something went wrong';
+  //     Alert.alert('Error', typeof msg === 'string' ? msg : JSON.stringify(msg));
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+const handleApplyLeave = async () => {
+  setLoading(true);
+  try {
+    const response = await axiosInstance.post('/cowberry_app.api.leave_api.apply_leave', {
+      employee: employeeCode,
+      leave_type: leaveType,
+      from_date: formatDate(fromDate),
+      to_date: formatDate(toDate),
+      half_day: halfDay,
+    });
+
+    const data = response.data;
+    if (data.message?.leave) {
+      Alert.alert('Success', `Leave submitted successfully!\nLeave ID: ${data.message.leave}`);
+    } else {
+      Alert.alert('Info', JSON.stringify(data));
     }
-  };
+  } catch (error) {
+    console.error(error);
+    const msg = error.response?.data?.message || 'Something went wrong';
+    Alert.alert('Error', typeof msg === 'string' ? msg : JSON.stringify(msg));
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <View style={styles.container}>
