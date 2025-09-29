@@ -11,7 +11,8 @@
 
    <!-- Background location (app closed / minimized hone par tracking) -->
    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
-
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
  
 
    <!-- Contact permission  -->
@@ -53,18 +54,19 @@
     android:foregroundServiceType="location"
     android:exported="false"/> -->
 
-    <service
-    android:name="com.cowberry.location.LocationService"
+ <service
+    android:name="com.cowberry.tracking.LocationService"
     android:foregroundServiceType="location"
     android:exported="false" />
 
-<receiver android:name="com.cowberry.location.LocationReceiver" 
-android:exported="true"
->
+<receiver
+    android:name="com.cowberry.tracking.LocationReceiver"
+    android:exported="true">
   <intent-filter>
     <action android:name="com.cowberry.UPDATE_INTERVAL" />
   </intent-filter>
 </receiver>
+
 
     <!-- Background Location -->
     </application>

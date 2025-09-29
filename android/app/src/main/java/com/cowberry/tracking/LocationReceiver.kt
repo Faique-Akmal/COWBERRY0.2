@@ -1,4 +1,4 @@
-package com.cowberry.location
+package com.cowberry.tracking
 
 import android.content.BroadcastReceiver
 import android.content.Context

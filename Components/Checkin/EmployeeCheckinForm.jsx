@@ -945,8 +945,14 @@ const EmployeeCheckinForm = () => {
 
                 const response = await axiosInstance.post(
                     '/cowberry_app.api.employee_checkin.create_employee_checkin',
-                    formData
-                ); // Do NOT override headers — let axios set multipart boundary
+                    formData,
+                    {
+                        headers: {
+                            'Content-Type': 'multipart/form-data',
+                        },
+                    }
+                );
+                // Do NOT override headers — let axios set multipart boundary
 
                 console.log('Response (form):', response.data);
             } else {
@@ -966,38 +972,38 @@ const EmployeeCheckinForm = () => {
             }
 
             // --- replace the success + tracking + reset section with this ---
-Alert.alert('Success', 'Check-in recorded successfully');
+            Alert.alert('Success', 'Check-in recorded successfully');
 
-// Decide tracking based on logType (IN / OUT) for Field Employee only
-if (isFieldEmployee) {
-  if (logType === 'IN') {
-    try {
-      await handleStartTracking();
-      console.log('Started tracking for Field Employee after IN');
-    } catch (e) {
-      console.warn('Start tracking from submit failed', e);
-    }
-  } else if (logType === 'OUT') {
-    try {
-      // pass silent = true so user doesn't get extra alert (optional)
-      await handleStopTracking(true);
-      console.log('Stopped tracking for Field Employee after OUT');
-    } catch (e) {
-      console.warn('Stop tracking from submit failed', e);
-    }
-  } else {
-    console.log('Unknown logType, skipping native tracking change:', logType);
-  }
-} else {
-  console.log('Not Field Employee — skipping native tracking.');
-}
+            // Decide tracking based on logType (IN / OUT) for Field Employee only
+            if (isFieldEmployee) {
+                if (logType === 'IN') {
+                    try {
+                        await handleStartTracking();
+                        console.log('Started tracking for Field Employee after IN');
+                    } catch (e) {
+                        console.warn('Start tracking from submit failed', e);
+                    }
+                } else if (logType === 'OUT') {
+                    try {
+                        // pass silent = true so user doesn't get extra alert (optional)
+                        await handleStopTracking(true);
+                        console.log('Stopped tracking for Field Employee after OUT');
+                    } catch (e) {
+                        console.warn('Stop tracking from submit failed', e);
+                    }
+                } else {
+                    console.log('Unknown logType, skipping native tracking change:', logType);
+                }
+            } else {
+                console.log('Not Field Employee — skipping native tracking.');
+            }
 
-// Reset form (unchanged)
-setLogType('');
-setLatitude('');
-setLongitude('');
-setOdometerImage(null);
-setSelfieImage(null);
+            // Reset form (unchanged)
+            setLogType('');
+            setLatitude('');
+            setLongitude('');
+            setOdometerImage(null);
+            setSelfieImage(null);
 
         } catch (error) {
             console.error('Check-in error:', error.response?.data || error.message);
