@@ -3,6 +3,7 @@ package com.cowberry.tracking
 import android.app.*
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkRequest
@@ -23,6 +24,15 @@ import kotlin.concurrent.thread
 class LocationService : Service() {
   companion object {
     private const val TAG = "LocationService"
+    private const val PREFS = "location_prefs"
+    private const val KEY_TOKEN = "location_auth_token"
+    private const val KEY_SID = "location_session_sid"
+    private const val KEY_USER = "location_user_id"
+    private const val KEY_POSTING = "network_posting_enabled"
+    private const val KEY_REFRESH = "location_refresh_token"
+    // preference key that indicates whether user has "checked in"
+    const val KEY_TRACKING_ENABLED = "tracking_enabled"
+    const val ACTION_STOP_TRACKING = "com.cowberry.STOP_TRACKING"
   }
 
   private lateinit var fusedClient: FusedLocationProviderClient
@@ -31,14 +41,6 @@ class LocationService : Service() {
   @Volatile private var lastSentAt: Long = 0L
   private val httpClient = OkHttpClient.Builder().connectTimeout(15, TimeUnit.SECONDS).build()
 
-  // prefs keys
-  private val PREFS = "location_prefs"
-  private val KEY_TOKEN = "location_auth_token"
-  private val KEY_SID = "location_session_sid"
-  private val KEY_USER = "location_user_id"
-  private val KEY_POSTING = "network_posting_enabled"
-  private val KEY_REFRESH = "location_refresh_token"
-
   // server endpoint — change to your endpoint (use https in prod)
   private val serverUrl = "http://192.168.0.143:8000/api/method/cowberry_app.api.locationlog.add_employee_location"
 
@@ -46,16 +48,51 @@ class LocationService : Service() {
   private val offlineFile by lazy { File(cacheDir, "offline_locations.json") }
   private val maxOffline = 200
   private val syncBatchSize = 20
-  @Volatile private var isSyncing = false
+
+  @Volatile private var isSyncing = false 
 
   // network monitoring
   private var connectivityManager: ConnectivityManager? = null
   private var networkCallback: ConnectivityManager.NetworkCallback? = null
   @Volatile private var networkAvailable = false
 
+  // prefs + listener (to react to checkout from JS while service is running)
+  private lateinit var prefs: SharedPreferences
+  private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { sharedPrefs, key ->
+    try {
+      if (key == KEY_TRACKING_ENABLED) {
+        val enabled = sharedPrefs.getBoolean(KEY_TRACKING_ENABLED, false)
+        Log.i(TAG, "===DBG=== Pref change: $KEY_TRACKING_ENABLED -> $enabled")
+        if (!enabled) {
+          // user requested stop (checkout) — stop service gracefully
+          Log.i(TAG, "===DBG=== tracking disabled via prefs -> stopping service")
+          stopSelf()
+        }
+      }
+    } catch (ex: Exception) {
+      Log.e(TAG, "===DBG=== prefsListener error: ${ex.message}")
+    }
+  }
+
   override fun onCreate() {
     super.onCreate()
     Log.i(TAG, "===DBG=== onCreate")
+
+    prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
+    // If tracking isn't enabled (user not checked-in), don't continue — stopSelf quickly.
+    if (!prefs.getBoolean(KEY_TRACKING_ENABLED, false)) {
+      Log.i(TAG, "===DBG=== tracking not enabled in prefs — stopping service immediately")
+      stopSelf()
+      return
+    }
+
+    // register listener so that checkout from JS/native will stop the service even if app was killed
+    try {
+      prefs.registerOnSharedPreferenceChangeListener(prefsListener)
+    } catch (ex: Exception) {
+      Log.w(TAG, "===DBG=== registerOnSharedPreferenceChangeListener failed: ${ex.message}")
+    }
 
     // start foreground notification first (must be quick)
     startForegroundServiceWithNotification()
@@ -96,6 +133,21 @@ class LocationService : Service() {
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    // handle explicit stop action via intent (useful if you want native-layer to send a stop intent)
+    intent?.action?.let { action ->
+      if (action == ACTION_STOP_TRACKING) {
+        Log.i(TAG, "===DBG=== onStartCommand got ACTION_STOP_TRACKING -> setting pref false and stopping")
+        try {
+          prefs.edit().putBoolean(KEY_TRACKING_ENABLED, false).apply()
+        } catch (ex: Exception) {
+          Log.w(TAG, "===DBG=== failed to write prefs for stop action: ${ex.message}")
+        }
+        stopSelf()
+        // do not restart after explicit stop
+        return START_NOT_STICKY
+      }
+    }
+
     intent?.extras?.let { extras ->
       if (extras.containsKey("interval")) {
         val interval = extras.getInt("interval", -1)
@@ -105,6 +157,9 @@ class LocationService : Service() {
         }
       }
     }
+
+    // Keep sticky so Android will try to restart if system kills service — but because we check prefs
+    // in onCreate, it will stop immediately if tracking_enabled == false.
     return START_STICKY
   }
 
@@ -121,18 +176,18 @@ class LocationService : Service() {
       .setSmallIcon(android.R.drawable.ic_menu_mylocation)
       .setOngoing(true)
       .build()
-    startForeground(1, notification)
-    Log.i(TAG, "===DBG=== startForeground called")
+    try {
+      startForeground(1, notification)
+      Log.i(TAG, "===DBG=== startForeground called")
+    } catch (ex: Exception) {
+      Log.e(TAG, "===DBG=== startForeground failed: ${ex.message}")
+    }
   }
 
-  private fun getPrefs(): android.content.SharedPreferences {
-    return getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-  }
-
-  private fun readAuthToken(): String? = getPrefs().getString(KEY_TOKEN, null)
-  private fun readSid(): String? = getPrefs().getString(KEY_SID, null)
-  private fun readUserId(): String? = getPrefs().getString(KEY_USER, null)
-  private fun isPostingEnabled(): Boolean = getPrefs().getBoolean(KEY_POSTING, false)
+  private fun readAuthToken(): String? = prefs.getString(KEY_TOKEN, null)
+  private fun readSid(): String? = prefs.getString(KEY_SID, null)
+  private fun readUserId(): String? = prefs.getString(KEY_USER, null)
+  private fun isPostingEnabled(): Boolean = prefs.getBoolean(KEY_POSTING, false)
 
   private fun addAuthHeaders(builder: Request.Builder) {
     val token = readAuthToken()
@@ -161,7 +216,7 @@ class LocationService : Service() {
     val json = JSONObject().apply {
       put("latitude", String.format("%.6f", lat))
       put("longitude", String.format("%.6f", lng))
-      put("battery", 0) // optional: add battery if you want via BatteryManager
+      put("battery", 0)
       put("speed", speed)
       put("pause", false)
     }
@@ -179,25 +234,29 @@ class LocationService : Service() {
 
       override fun onResponse(call: Call, response: Response) {
         Log.i(TAG, "===DBG=== postLocation status: ${response.code}")
-        if (response.code == 401 || response.code == 403) {
-          Log.w(TAG, "===DBG=== auth error from server -> save offline and attempt refresh")
-          saveOffline(lat, lng, speed)
-          handleAuthFailureAndRetry(lat, lng, speed)
-        } else if (!response.isSuccessful) {
-          Log.w(TAG, "===DBG=== non-2xx -> save offline")
-          saveOffline(lat, lng, speed)
-        } else {
-          Log.d(TAG, "===DBG=== postLocation success body: ${response.body?.string() ?: "<empty>"}")
-          syncOfflineIfNeeded()
+        try {
+          if (response.code == 401 || response.code == 403) {
+            Log.w(TAG, "===DBG=== auth error from server -> save offline and attempt refresh")
+            saveOffline(lat, lng, speed)
+            handleAuthFailureAndRetry(lat, lng, speed)
+          } else if (!response.isSuccessful) {
+            Log.w(TAG, "===DBG=== non-2xx -> save offline")
+            saveOffline(lat, lng, speed)
+          } else {
+            Log.d(TAG, "===DBG=== postLocation success body: ${response.body?.string() ?: "<empty>"}")
+            syncOfflineIfNeeded()
+          }
+        } catch (ex: Exception) {
+          Log.e(TAG, "===DBG=== onResponse error: ${ex.message}")
+        } finally {
+          response.close()
         }
-        response.close()
       }
     })
   }
 
   private fun handleAuthFailureAndRetry(lat: Double, lng: Double, speed: Double) {
-    // attempt refresh using KEY_REFRESH; simple single try
-    val refresh = getPrefs().getString(KEY_REFRESH, null) ?: run {
+    val refresh = prefs.getString(KEY_REFRESH, null) ?: run {
       Log.w(TAG, "===DBG=== no refresh token available")
       return
     }
@@ -210,23 +269,27 @@ class LocationService : Service() {
         Log.e(TAG, "===DBG=== refresh failed: ${e.message}")
       }
       override fun onResponse(call: Call, response: Response) {
-        if (!response.isSuccessful) {
-          Log.w(TAG, "===DBG=== refresh non-200: ${response.code}")
-        } else {
-          val bodyStr = response.body?.string()
-          // naive parse for "access" key
-          try {
-            val obj = JSONObject(bodyStr ?: "{}")
-            val newAccess = obj.optString("access", null)
-            if (!newAccess.isNullOrEmpty()) {
-              getPrefs().edit().putString(KEY_TOKEN, newAccess).apply()
-              Log.i(TAG, "===DBG=== refresh saved new token (prefix): ${newAccess.take(12)}")
+        try {
+          if (!response.isSuccessful) {
+            Log.w(TAG, "===DBG=== refresh non-200: ${response.code}")
+          } else {
+            val bodyStr = response.body?.string()
+            try {
+              val obj = JSONObject(bodyStr ?: "{}")
+              val newAccess = obj.optString("access", null)
+              if (!newAccess.isNullOrEmpty()) {
+                prefs.edit().putString(KEY_TOKEN, newAccess).apply()
+                Log.i(TAG, "===DBG=== refresh saved new token (prefix): ${newAccess.take(12)}")
+              }
+            } catch (ex: Exception) {
+              Log.e(TAG, "===DBG=== refresh parse error: ${ex.message}")
             }
-          } catch (ex: Exception) {
-            Log.e(TAG, "===DBG=== refresh parse error: ${ex.message}")
           }
+        } catch (ex: Exception) {
+          Log.e(TAG, "===DBG=== refresh onResponse error: ${ex.message}")
+        } finally {
+          response.close()
         }
-        response.close()
       }
     })
   }
@@ -248,12 +311,12 @@ class LocationService : Service() {
           put("latitude", String.format("%.6f", lat))
           put("longitude", String.format("%.6f", lng))
           put("speed", speed)
+          // save unix epoch seconds at the time of offline save
           put("ts", System.currentTimeMillis() / 1000)
           val uid = readUserId()
           if (!uid.isNullOrEmpty()) put("user", uid)
         }
         arr.add(item)
-        // trim to maxOffline
         while (arr.size > maxOffline) arr.removeAt(0)
         val out = org.json.JSONArray(arr.toList())
         offlineFile.writeText(out.toString())
@@ -269,6 +332,12 @@ class LocationService : Service() {
       Log.i(TAG, "===DBG=== network not available, skip syncOffline")
       return
     }
+    // prevent concurrent syncs
+    if (isSyncing) {
+      Log.i(TAG, "===DBG=== syncOffline already in progress")
+      return
+    }
+    isSyncing = true
     thread {
       try {
         if (!offlineFile.exists()) return@thread
@@ -286,12 +355,14 @@ class LocationService : Service() {
           p.put("speed", obj.optDouble("speed", 0.0))
           p.put("pause", false)
           if (obj.has("user")) p.put("user", obj.get("user"))
+          // optionally include ts if backend expects it (but original logic omitted it)
           val body = RequestBody.create("application/json; charset=utf-8".toMediaType(), p.toString())
           addAuthHeaders(builder)
           val req = builder.post(body).build()
           val resp = try { httpClient.newCall(req).execute() } catch (ex: Exception) { null }
           if (resp == null || !resp.isSuccessful) {
             Log.w(TAG, "===DBG=== syncOffline item failed, abort batch")
+            resp?.close()
             return@thread
           } else {
             resp.close()
@@ -304,6 +375,8 @@ class LocationService : Service() {
         Log.i(TAG, "===DBG=== syncOffline succeeded removed $sendCount items, remaining ${remaining.length()}")
       } catch (ex: Exception) {
         Log.e(TAG, "===DBG=== syncOffline err: ${ex.message}")
+      } finally {
+        isSyncing = false
       }
     }
   }
@@ -324,7 +397,6 @@ class LocationService : Service() {
       }
       val req = NetworkRequest.Builder().build()
       connectivityManager?.registerNetworkCallback(req, networkCallback!!)
-      // initial state
       val active = connectivityManager?.activeNetwork != null
       networkAvailable = active
       Log.i(TAG, "===DBG=== initial networkAvailable: $networkAvailable")
@@ -346,7 +418,14 @@ class LocationService : Service() {
     }
     try {
       networkCallback?.let { connectivityManager?.unregisterNetworkCallback(it) }
-    } catch (ex: Exception) {}
+    } catch (ex: Exception) {
+      Log.w(TAG, "unregisterNetworkCallback failed: ${ex.message}")
+    }
+    try {
+      prefs.unregisterOnSharedPreferenceChangeListener(prefsListener)
+    } catch (ex: Exception) {
+      Log.w(TAG, "unregister prefs listener failed: ${ex.message}")
+    }
     Log.i(TAG, "===DBG=== onDestroy")
     super.onDestroy()
   }

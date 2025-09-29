@@ -1,8 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <uses-permission android:name="android.permission.INTERNET" />
+   <uses-permission android:name="android.permission.INTERNET" />
     <!-- CAMERA permission -->
-    <uses-permission android:name="android.permission.CAMERA" />
+   <uses-permission android:name="android.permission.CAMERA" />
     <!-- Foreground location (accurate GPS) -->
    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
@@ -11,8 +11,8 @@
 
    <!-- Background location (app closed / minimized hone par tracking) -->
    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
-  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+   <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
  
 
    <!-- Contact permission  -->
@@ -59,15 +59,13 @@
     android:foregroundServiceType="location"
     android:exported="false" />
 
-<receiver
+ <receiver
     android:name="com.cowberry.tracking.LocationReceiver"
     android:exported="true">
   <intent-filter>
     <action android:name="com.cowberry.UPDATE_INTERVAL" />
   </intent-filter>
-</receiver>
+ </receiver>
 
-
-    <!-- Background Location -->
-    </application>
+</application>
 </manifest>

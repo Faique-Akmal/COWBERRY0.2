@@ -247,104 +247,126 @@ const LoginScreen = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [secureText, setSecureText] = useState(true);
 
-  const handleLogin = async () => {
-    if (!username || !password) {
-      Alert.alert("Error", "Please enter both fields");
-      return;
-    }
+const handleLogin = async () => {
+  if (!username || !password) {
+    Alert.alert("Error", "Please enter both fields");
+    return;
+  }
 
-    try {
-      const response = await axios.post(`${API_URL}/cowberry_app.api.api.login`, {
-        username,
-        password,
-      });
+  try {
+    const response = await axios.post(`${API_URL}/cowberry_app.api.api.login`, {
+      username,
+      password,
+    });
 
-      const data = response.data;
-      console.log('Login response:', data);
+    const data = response.data;
+    console.log('Login response:', data);
 
-      if (data?.message?.sid) {
-        // Save SID and basic profile info
-        await AsyncStorage.setItem("sid", data.message.sid);
-        await AsyncStorage.setItem("username", data.message.user.full_name || "");
-        await AsyncStorage.setItem("email", data.message.user.email || "");
+    if (data?.message?.sid) {
+      // Save SID and basic profile info
+      await AsyncStorage.setItem("sid", data.message.sid);
+      await AsyncStorage.setItem("username", data.message.user.full_name || "");
+      await AsyncStorage.setItem("email", data.message.user.email || "");
 
-        // Push sid to native session immediately (await to ensure native has it)
-        try {
-          const sessionSet = await setNativeSession(data.message.sid);
-          console.log('DBG: setNativeSession result ->', sessionSet);
-        } catch (e) {
-          console.warn('DBG: setNativeSession error', e);
-        }
+      // Push sid to native session immediately (await to ensure native has it)
+      try {
+        const sessionSet = await setNativeSession(data.message.sid);
+        console.log('DBG: setNativeSession result ->', sessionSet);
+      } catch (e) {
+        console.warn('DBG: setNativeSession error', e);
+      }
 
-        // --- NEW: decide tracking behaviour based on role & is_checkin ---
-        try {
-          const user = data.message.user || {};
-          const roles = Array.isArray(user.roles) ? user.roles : [];
-          const isField = roles.includes('Field Employee');
-          const isCheckin = !!user.is_checkin;
+      // --- NEW: decide tracking behaviour based on role & is_checkin ---
+      try {
+        const user = data.message.user || {};
+        const roles = Array.isArray(user.roles) ? user.roles : [];
+        const isField = roles.includes('Field Employee');
+        const isCheckin = !!user.is_checkin;
 
-          console.log('DBG: isField:', isField, 'is_checkin:', isCheckin);
+        console.log('DBG: isField:', isField, 'is_checkin:', isCheckin);
 
-          if (isField) {
-            // Only attempt to start/stop tracking for Field Employee
-            if (isCheckin) {
-              // Start tracking
+        if (isField) {
+          // Only attempt to start/stop tracking for Field Employee
+          if (isCheckin) {
+            // If the backend says user is already checked-in, we want to ensure:
+            // 1) any stale/previous native tracking is stopped
+            // 2) then start fresh native tracking with desired interval
+            try {
+              // 0) make sure native stops any existing tracking first
               try {
-                // enable network posting on native side if available
-                if (LocationServiceBridge && typeof LocationServiceBridge.enableNetworkPosting === 'function') {
+                if (typeof stopNativeTracking === 'function') {
+                  const stopRes = await stopNativeTracking();
+                  console.log('DBG: stopNativeTracking (pre-start) ->', stopRes);
+                } else if (LocationServiceBridge && typeof LocationServiceBridge.stopService === 'function') {
+                  // fallback if older bridge naming
                   try {
-                    LocationServiceBridge.enableNetworkPosting();
-                    console.log('DBG: enableNetworkPosting called');
+                    LocationServiceBridge.stopService();
+                    console.log('DBG: LocationServiceBridge.stopService called (fallback)');
                   } catch (e) {
-                    console.warn('DBG: enableNetworkPosting failed', e);
-                  }
-                }
-
-                // call native start (await in case native bridge returns a promise)
-                const started = await startNativeTracking?.(5);
-                console.log('DBG: startNativeTracking returned ->', started);
-              } catch (e) {
-                console.warn('Failed to start native tracking on login:', e);
-              }
-            } else {
-              // Stop tracking (if any)
-              try {
-                const stopped = await stopNativeTracking?.();
-                console.log('DBG: stopNativeTracking returned ->', stopped);
-
-                if (LocationServiceBridge && typeof LocationServiceBridge.disableNetworkPosting === 'function') {
-                  try {
-                    LocationServiceBridge.disableNetworkPosting();
-                    console.log('DBG: disableNetworkPosting called');
-                  } catch (e) {
-                    console.warn('DBG: disableNetworkPosting failed', e);
+                    console.warn('DBG: fallback stopService failed', e);
                   }
                 }
               } catch (e) {
-                console.warn('Failed to stop native tracking on login:', e);
+                // don't fail whole flow if stop fails; just log and continue
+                console.warn('DBG: stopNativeTracking (pre-start) threw:', e);
               }
+
+              // 1) enable network posting on native side if available
+              if (LocationServiceBridge && typeof LocationServiceBridge.enableNetworkPosting === 'function') {
+                try {
+                  LocationServiceBridge.enableNetworkPosting();
+                  console.log('DBG: enableNetworkPosting called');
+                } catch (e) {
+                  console.warn('DBG: enableNetworkPosting failed', e);
+                }
+              }
+
+              // 2) call native start (await in case native bridge returns a promise)
+              const started = await startNativeTracking?.(5);
+              console.log('DBG: startNativeTracking returned ->', started);
+            } catch (e) {
+              console.warn('Failed to start native tracking on login:', e);
             }
           } else {
-            console.log('Not Field Employee — skipping any native tracking changes.');
-          }
-        } catch (e) {
-          console.warn('Error while evaluating tracking rules:', e);
-        }
-        // --- END NEW ---
+            // If backend says not checked-in, do NOT start tracking automatically.
+            // But also proactively stop any leftover native tracking (user expects not tracking)
+            try {
+              const stopped = await stopNativeTracking?.();
+              console.log('DBG: stopNativeTracking returned ->', stopped);
 
-        // Navigate to DrawerScreen
-        navigation.reset({
-          index: 0,
-          routes: [{ name: "DrawerScreen" }],
-        });
-      } else {
-        Alert.alert("Login Failed", "Invalid response from server");
+              if (LocationServiceBridge && typeof LocationServiceBridge.disableNetworkPosting === 'function') {
+                try {
+                  LocationServiceBridge.disableNetworkPosting();
+                  console.log('DBG: disableNetworkPosting called');
+                } catch (e) {
+                  console.warn('DBG: disableNetworkPosting failed', e);
+                }
+              }
+            } catch (e) {
+              console.warn('Failed to stop native tracking on login (is_checkin false):', e);
+            }
+          }
+        } else {
+          console.log('Not Field Employee — skipping any native tracking changes.');
+        }
+      } catch (e) {
+        console.warn('Error while evaluating tracking rules:', e);
       }
-    } catch (error) {
-      console.error("Login Error:", error.response?.data || error.message);
-      Alert.alert("Login Failed", "Invalid credentials or server error");
+      // --- END NEW ---
+
+      // Navigate to DrawerScreen
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "DrawerScreen" }],
+      });
+    } else {
+      Alert.alert("Login Failed", "Invalid response from server");
     }
-  };
+  } catch (error) {
+    console.error("Login Error:", error.response?.data || error.message);
+    Alert.alert("Login Failed", "Invalid credentials or server error");
+  }
+};
 
   return (
     <SafeAreaView style={styles.container}>

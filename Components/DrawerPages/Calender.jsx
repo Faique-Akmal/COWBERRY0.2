@@ -16,7 +16,7 @@ export default function Calender() {
   "Leave Without Pay": "#FF0000",  // red
   "sick leave": "#33C1FF",         // blue
   "Work From Home": "#9D33FF",     // purple
-  "Present": "#FFD700",             // gold
+  "Present": "#377355",             // gold
   "Absent": "#FF33A8",              // pink/magenta
 };
 
