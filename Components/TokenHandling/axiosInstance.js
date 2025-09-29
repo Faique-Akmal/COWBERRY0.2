@@ -9,10 +9,13 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(async config => {
   const sid = await AsyncStorage.getItem("sid");
   if (sid) {
-    config.headers["Cookie"] = `sid=${sid}`; 
+    config.headers["Cookie"] = `sid=${sid}`;
+    config.headers["X-Frappe-SID"] = sid;  
   }
+  console.log('➡️ Request:', config.url, config.headers);
   return config;
 });
+
 
 export default axiosInstance;
 

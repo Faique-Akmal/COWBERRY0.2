@@ -7,7 +7,8 @@ import com.facebook.react.uimanager.ViewManager
 
 class LocationPackage : ReactPackage {
     override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
-        return listOf(LocationServiceBridge(reactContext))
+        // Use LocationModule (not LocationServiceBridge)
+        return listOf(LocationModule(reactContext))
     }
 
     override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {
