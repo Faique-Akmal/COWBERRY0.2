@@ -17,6 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import axiosInstance from '../TokenHandling/axiosInstance';
+import { BlurView } from '@react-native-community/blur';
 
 const { width } = Dimensions.get('window');
 
@@ -67,6 +68,11 @@ const CustomDrawer = (props) => {
   };
 
   return (
+     <BlurView
+      style={styles.container}
+      blurType="light"     // light | dark | extraLight
+      blurAmount={6}      // blur intensity
+    >
     <View style={styles.container}>
       <DrawerContentScrollView {...props} contentContainerStyle={styles.scrollContainer}>
         <View style={styles.header}>
@@ -106,17 +112,17 @@ const CustomDrawer = (props) => {
           </TouchableOpacity> */}
 
           <TouchableOpacity style={[styles.customButton]} onPress={() => navigation.navigate('Attendance')}>
-            <MaterialIcons name="view-list" size={20} color="#ffe3afff" />
+            <MaterialIcons name="view-list" size={20} color="rgba(255, 255, 255, 0.9)" />
             <Text style={styles.newButtonText}>Employee Checkin</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={[styles.customButton]} onPress={() => navigation.navigate('Calender')}>
-            <MaterialIcons name="calendar-month" size={20} color="#ffe3afff" />
+            <MaterialIcons name="calendar-month" size={20} color="rgba(255, 255, 255, 0.9)" />
             <Text style={styles.newButtonText}>Calender</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={[styles.customButton]} onPress={() => navigation.navigate('MyTask')}>
-            <FontAwesome5 name="tasks" size={20} color="#ffe3afff" />
+            <FontAwesome5 name="tasks" size={20} color="rgba(255, 255, 255, 0.9)" />
             <Text style={styles.newButtonText}>My Task</Text>
           </TouchableOpacity>
 
@@ -133,7 +139,7 @@ const CustomDrawer = (props) => {
     })
   }
 >
-  <FontAwesome name="users" size={20} color="#ffe3afff" />
+  <FontAwesome name="users" size={20} color="rgba(255, 255, 255, 0.9)" />
   <Text style={styles.newButtonText}>Leave Applications</Text>
 </TouchableOpacity>
 
@@ -142,14 +148,16 @@ const CustomDrawer = (props) => {
 
       {/* Logout */}
       <View style={styles.footer}>
-        <TouchableOpacity style={[styles.logoutButton, styles.logoutHoverEffect]} onPress={handleLogout}>
-          <View style={styles.logoutIconWrapper}>
-            <Ionicons name="log-out-outline" size={22} color="#D32F2F" />
-          </View>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+         
+            <Ionicons name="log-out-outline" size={22} color="#fff" />
+       
           <Text style={styles.logoutText}>Logout</Text>
+          
         </TouchableOpacity>
       </View>
     </View>
+    </BlurView>
   );
 };
 
@@ -162,7 +170,9 @@ export default CustomDrawer;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#d2af6f',
+    borderColor:"rgba(255, 255, 255, 0.34)",
+    borderRightWidth:1
+    // backgroundColor: 'rgba(210, 175, 111, 0.84)',
   },
   customButton: {
     flexDirection: 'row',
@@ -175,20 +185,21 @@ const styles = StyleSheet.create({
   newButtonText: {
     marginLeft: 10,
     fontSize: 16,
-    color: '#ffe3afff',
+    color: 'rgba(255, 255, 255, 0.9)',
     fontWeight: "700"
   },
   scrollContainer: {
     paddingTop: 0,
     paddingBottom: 20,
+    
   },
   header: {
     padding: 20,
     paddingBottom: 15,
-    backgroundColor: '#D2AF6F',
     borderBottomWidth: 1,
-    borderBottomColor: '#000',
+    borderBottomColor: 'rgba(255, 255, 255, 0.34)',
     marginBottom: 10
+    
   },
   profileContainer: {
     flexDirection: 'column',
@@ -199,23 +210,30 @@ const styles = StyleSheet.create({
     width: 70,
     borderRadius: 35,
     borderWidth: 1,
-    borderColor: '#000',
+    borderColor: 'rgba(255, 255, 255, 0.81)',
   },
   profileTextContainer: {
     // marginLeft: 15,
     marginTop: 10,
     alignItems: 'center',
+   
   },
   name: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   email: {
     fontSize: 14,
-    color: '#000',
+    color: 'rgba(255, 255, 255, 0.9)',
     marginTop: 3,
   },
+   role: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginTop: 3,
+  },
+
   actionButtonsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -290,31 +308,24 @@ const styles = StyleSheet.create({
   footer: {
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: '#000',
-    backgroundColor: '#D2AF6F',
-  },
+    borderTopColor: 'rgba(255, 255, 255, 0.34)',
+     },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 8,
     paddingHorizontal: 20,
     borderRadius: 8,
-    // backgroundColor: 'rgba(211, 47, 47, 0.1)',
-  },
-  logoutHoverEffect: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#D32F2F',
-  },
-  logoutIconWrapper: {
-    backgroundColor: 'rgba(211, 47, 47, 0.2)',
-    borderRadius: 6,
-    padding: 5,
+     backgroundColor:"#DC2525",
+     alignSelf:"flex-start",
+   
   },
   logoutText: {
-    color: '#D32F2F',
+    color: '#fff',
     fontSize: 16,
     fontWeight: '500',
     marginLeft: 5,
+  
   },
 });
 
