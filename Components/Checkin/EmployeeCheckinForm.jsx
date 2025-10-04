@@ -12,7 +12,8 @@ import {
     PermissionsAndroid,
     NativeModules,
     Image,
-    ScrollView
+    ScrollView,
+    ImageBackground,
 } from 'react-native';
 import axiosInstance from '../TokenHandling/axiosInstance';
 import Geolocation from 'react-native-geolocation-service';
@@ -435,134 +436,143 @@ const EmployeeCheckinForm = () => {
 
     // --- Render UI (only styling/layout changed) ---
     return (
-        <ScrollView style={styles.page} contentContainerStyle={{ paddingVertical: 24 }}>
-            <View style={styles.container}>
-                <View style={styles.card}>
-                    <Text style={styles.title}>Employee Checkin</Text>
-
-                    {/* <Text style={styles.fieldLabel}>Log Type</Text> */}
-                    <TouchableOpacity
-                        style={styles.dropdown}
-                        onPress={() => setShowDropdown(!showDropdown)}
-                    >
-                        <Text style={styles.dropdownText}>
-                            {logType ? logType : 'Log Type'}
-                        </Text>
-                        <Ionicons name="chevron-down" size={18} color="#666" />
+        <ImageBackground
+            source={require("../images/123.png")}
+            style={{ flex: 1 }}
+        >
+            <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.1)" }} />
+            <ScrollView style={styles.page} contentContainerStyle={{ paddingVertical: 24 }}>
+                <View style={styles.container}>
+                    <TouchableOpacity style={styles.backWrap} onPress={() => navigation.goBack()}>
+                        <Ionicons name="arrow-back" size={28} color="#000" />
                     </TouchableOpacity>
-                    {showDropdown && (
-                        <View style={styles.dropdownOptions}>
-                            {['IN', 'OUT'].map((type) => (
-                                <TouchableOpacity
-                                    key={type}
-                                    style={styles.dropdownOption}
-                                    onPress={() => {
-                                        setLogType(type);
-                                        setShowDropdown(false);
-                                    }}
-                                >
-                                    <Text style={styles.dropdownOptionText}>{type}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    )}
+                    <View style={styles.card}>
+                        <Text style={styles.title}>Employee Checkin</Text>
 
-
-
-                    <TouchableOpacity
-                        style={styles.bigFetchBtn}
-                        onPress={fetchLocation}
-                        disabled={fetchingLocation}
-                    >
-                        <View style={styles.fetchLeft}>
-                            {fetchingLocation ? (
-                                <ActivityIndicator size="small" color="#fff" />
-                            ) : (
-                                <Ionicons name="location" size={20} color="#fff" />
-                            )}
-                        </View>
-                        <Text style={styles.fetchText}>
-                            {fetchingLocation ? 'Fetching...' : 'Fetch Geolocation'}
-                        </Text>
-                    </TouchableOpacity>
-
-
-                    <View style={styles.coords}>
-                        <View style={styles.coordCol}>
-                            {/* <Text style={styles.fieldLabel}>Latitude</Text> */}
-                            <TextInput
-                                style={styles.coordInput}
-                                value={latitude}
-                                editable={false}
-                                placeholder="Latitude"
-                            />
-                        </View>
-
-                        <View style={styles.coordCol}>
-                            {/* <Text style={styles.fieldLabel}>Longitude</Text> */}
-                            <TextInput
-                                style={styles.coordInput}
-                                value={longitude}
-                                editable={false}
-                                placeholder="Longitude"
-                            />
-                        </View>
-                    </View>
-
-                    {isFieldEmployee && (
-                        <>
-                            <View style={styles.photoRow}>
-                                <TouchableOpacity
-                                    style={styles.photoBtn}
-                                    onPress={() => openCameraFor('odometer')}
-                                >
-                                    {odometerImage ? (
-                                        <Image source={{ uri: odometerImage.uri }} style={styles.photoPreview} />
-                                    ) : (
-                                        <View style={styles.photoPlaceholder}>
-                                            <Ionicons name="camera" size={20} color="#6b6b6b" />
-                                            <Text style={styles.photoLabel}>Odometer Image</Text>
-                                        </View>
-                                    )}
-                                </TouchableOpacity>
-
-                                <TouchableOpacity
-                                    style={styles.photoBtn}
-                                    onPress={() => openCameraFor('selfie')}
-                                >
-                                    {selfieImage ? (
-                                        <Image source={{ uri: selfieImage.uri }} style={styles.photoPreview} />
-                                    ) : (
-                                        <View style={styles.photoPlaceholder}>
-                                            <Ionicons name="camera" size={20} color="#6b6b6b" />
-                                            <Text style={styles.photoLabel}>Selfie Image</Text>
-                                        </View>
-                                    )}
-                                </TouchableOpacity>
+                        {/* <Text style={styles.fieldLabel}>Log Type</Text> */}
+                        <TouchableOpacity
+                            style={styles.dropdown}
+                            onPress={() => setShowDropdown(!showDropdown)}
+                        >
+                            <Text style={styles.dropdownText}>
+                                {logType ? logType : 'Log Type'}
+                            </Text>
+                            <Ionicons name="chevron-down" size={18} color="#666" />
+                        </TouchableOpacity>
+                        {showDropdown && (
+                            <View style={styles.dropdownOptions}>
+                                {['IN', 'OUT'].map((type) => (
+                                    <TouchableOpacity
+                                        key={type}
+                                        style={styles.dropdownOption}
+                                        onPress={() => {
+                                            setLogType(type);
+                                            setShowDropdown(false);
+                                        }}
+                                    >
+                                        <Text style={styles.dropdownOptionText}>{type}</Text>
+                                    </TouchableOpacity>
+                                ))}
                             </View>
-                        </>
-                    )}
-
-                    <TouchableOpacity
-                        style={[styles.saveBtn, { opacity: (!isFormComplete() || loading) ? 0.7 : 1 }]}
-                        onPress={handleSubmit}
-                        disabled={!isFormComplete() || loading}
-                    >
-                        {loading ? (
-                            <ActivityIndicator color="#fff" />
-                        ) : (
-                            <Text style={styles.saveText}>SAVE</Text>
                         )}
-                    </TouchableOpacity>
+
+
+
+                        <TouchableOpacity
+                            style={styles.bigFetchBtn}
+                            onPress={fetchLocation}
+                            disabled={fetchingLocation}
+                        >
+                            <View style={styles.fetchLeft}>
+                                {fetchingLocation ? (
+                                    <ActivityIndicator size="small" color="#fff" />
+                                ) : (
+                                    <Ionicons name="location" size={20} color="#fff" />
+                                )}
+                            </View>
+                            <Text style={styles.fetchText}>
+                                {fetchingLocation ? 'Fetching...' : 'Fetch Geolocation'}
+                            </Text>
+                        </TouchableOpacity>
+
+
+                        <View style={styles.coords}>
+                            <View style={styles.coordCol}>
+                                {/* <Text style={styles.fieldLabel}>Latitude</Text> */}
+                                <TextInput
+                                    style={styles.coordInput}
+                                    value={latitude}
+                                    editable={false}
+                                    placeholder="Latitude"
+                                />
+                            </View>
+
+                            <View style={styles.coordCol}>
+                                {/* <Text style={styles.fieldLabel}>Longitude</Text> */}
+                                <TextInput
+                                    style={styles.coordInput}
+                                    value={longitude}
+                                    editable={false}
+                                    placeholder="Longitude"
+                                />
+                            </View>
+                        </View>
+
+                        {isFieldEmployee && (
+                            <>
+                                <View style={styles.photoRow}>
+                                    <TouchableOpacity
+                                        style={styles.photoBtn}
+                                        onPress={() => openCameraFor('odometer')}
+                                    >
+                                        {odometerImage ? (
+                                            <Image source={{ uri: odometerImage.uri }} style={styles.photoPreview} />
+                                        ) : (
+                                            <View style={styles.photoPlaceholder}>
+                                                <Ionicons name="camera" size={20} color="#6b6b6b" />
+                                                <Text style={styles.photoLabel}>Odometer Image</Text>
+                                            </View>
+                                        )}
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                        style={styles.photoBtn}
+                                        onPress={() => openCameraFor('selfie')}
+                                    >
+                                        {selfieImage ? (
+                                            <Image source={{ uri: selfieImage.uri }} style={styles.photoPreview} />
+                                        ) : (
+                                            <View style={styles.photoPlaceholder}>
+                                                <Ionicons name="camera" size={20} color="#6b6b6b" />
+                                                <Text style={styles.photoLabel}>Selfie Image</Text>
+                                            </View>
+                                        )}
+                                    </TouchableOpacity>
+                                </View>
+                            </>
+                        )}
+
+                        <TouchableOpacity
+                            style={[styles.saveBtn, { opacity: (!isFormComplete() || loading) ? 0.7 : 1 }]}
+                            onPress={handleSubmit}
+                            disabled={!isFormComplete() || loading}
+                        >
+                            {loading ? (
+                                <ActivityIndicator color="#fff" />
+                            ) : (
+                                <Text style={styles.saveText}>SAVE</Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
                 </View>
-            </View>
-        </ScrollView>
+            </ScrollView>
+        </ImageBackground>
     );
 };
 
 const styles = StyleSheet.create({
     page: {
-        backgroundColor: '#f2f4f7',
+        // backgroundColor: '#f2f4f7',
         flex: 1,
         marginTop: 50
     },
@@ -744,6 +754,11 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontWeight: '800',
         fontSize: 16,
+    },
+    // Back
+    backWrap: {
+        alignSelf: "flex-start",
+        marginBottom: 10,
     },
 });
 

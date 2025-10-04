@@ -177,7 +177,7 @@ export default function Home({ navigation }) {
     <Text style={styles.role}>Role : {userData?.role}</Text>
     <Text style={styles.employeeId}>Employee ID : {userData?.employee_id}</Text>
   </View>
-            <TouchableOpacity
+            {/* <TouchableOpacity
               style={styles.editBtn}>
               <Text
                 style={styles.editText}
@@ -185,7 +185,7 @@ export default function Home({ navigation }) {
               >
                 Edit
               </Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
 
 
