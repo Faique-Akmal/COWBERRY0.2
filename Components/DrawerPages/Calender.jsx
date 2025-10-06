@@ -20,7 +20,7 @@ export default function Calender() {
 
   // Leave type color mapping
   const leaveColors = {
-    "Casual Leave": "#FF5733", // orange
+    "Casual Leave": "#FF5733", // orange. 
     "Leave Without Pay": "#FF33A8", // pink/magenta
     "sick leave": "#33C1FF", // blue
     "Work From Home": "#9D33FF", // purple
