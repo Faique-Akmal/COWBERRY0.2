@@ -4,19 +4,21 @@ import { StyleSheet, SafeAreaView } from 'react-native';
 import React from 'react';
 import AppNavigator from './Components/Navigation/AppNavigator';
 import FloatingChatButton from './Components/Chats/components/FloatingChatButton';
-import SocketChatBox from './Components/Chats/screens/SocketChatBox';
+import { NavigationContainer } from '@react-navigation/native';
+import { navigationRef, navigate } from './Components/RootNavigation'; // ensure path correct
 
-
-const App = ({navigation}) => {
-
+const App = () => {
+  // use the global helper instead of expecting `navigation` prop
   const handleChatOpen = () => {
-    navigation.navigate('SocketChatBox');
+    navigate('SocketChatBox'); // <-- use navigation helper
   };
-
 
   return (
     <SafeAreaView style={styles.container}>
-      <AppNavigator />
+      <NavigationContainer ref={navigationRef}>
+        <AppNavigator />
+      </NavigationContainer>
+
       {/* Floating button placed after NavigationContainer so it overlays every screen */}
       <FloatingChatButton
         onPress={handleChatOpen}

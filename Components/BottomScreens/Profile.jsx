@@ -40,7 +40,7 @@ export default function Home({ navigation }) {
         id: user.id,
         email: user.email,
         full_name: user.full_name,
-        role: user.roles?.[1] || "", 
+        role: user.roles?.[0] || "", 
         employee_id: user.employee_id,
         is_checkin: user.is_checkin,
         last_checkin_time: user.last_checkin_time,
