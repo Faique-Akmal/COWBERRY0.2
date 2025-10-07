@@ -1,14 +1,29 @@
-import 'react-native-gesture-handler';
-import 'react-native-reanimated';
+// import 'react-native-gesture-handler';
+// import 'react-native-reanimated';
 import { StyleSheet, SafeAreaView } from 'react-native';
 import React from 'react';
 import AppNavigator from './Components/Navigation/AppNavigator';
+import FloatingChatButton from './Components/Chats/components/FloatingChatButton';
+import SocketChatBox from './Components/Chats/screens/SocketChatBox';
 
-const App = () => {
+
+const App = ({navigation}) => {
+
+  const handleChatOpen = () => {
+    navigation.navigate('SocketChatBox');
+  };
+
 
   return (
     <SafeAreaView style={styles.container}>
       <AppNavigator />
+      {/* Floating button placed after NavigationContainer so it overlays every screen */}
+      <FloatingChatButton
+        onPress={handleChatOpen}
+        badge={3} // example unread count
+        backgroundColor="#377355"
+        iconName="chatbubble-ellipses"
+      />
     </SafeAreaView>
   );
 };

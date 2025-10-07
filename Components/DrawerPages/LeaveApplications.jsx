@@ -17,7 +17,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import axiosInstance from '../TokenHandling/axiosInstance';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-const ApplyLeavePage = ({ route }) => {
+const ApplyLeavePage = ({ route, navigation }) => {
   const { employeeCode } = route.params;
 
   const [leaveTypes, setLeaveTypes] = useState([]);
@@ -97,6 +97,11 @@ const ApplyLeavePage = ({ route }) => {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={{ flex: 1 }}
         >
+
+          <TouchableOpacity onPress={() => navigation.goBack()} style={{ margin:10}}>
+            <Ionicons name="arrow-back" size={28} color="#000" />
+          </TouchableOpacity>
+
           <ScrollView contentContainerStyle={styles.scrollContainer}>
             <View style={styles.card}>
               <Text style={styles.title}>Apply Leave</Text>
@@ -226,15 +231,15 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: 'center',
     padding: 20,
+    marginTop:20
   },
   card: {
     backgroundColor: 'rgba(255, 255, 255, 0.75)',
     borderRadius: 28,
     padding: 24,
- 
-   
+
+
   },
   title: {
     fontSize: 26,

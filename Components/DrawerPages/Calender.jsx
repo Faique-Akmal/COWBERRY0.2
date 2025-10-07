@@ -212,10 +212,13 @@ export default function Calender() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerRow}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 10 }}>
-          <Ionicons name="arrow-back" size={26} color="#377355" />
+
+          <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginLeft: 10, marginTop:10, marginBottom:20 }}>
+          <Ionicons name="arrow-back" size={28} color="#000" />
         </TouchableOpacity>
+
+      <View style={styles.headerRow}>
+    
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.toggleScroll}>
           {topButtons.map((btn) => {
@@ -325,8 +328,17 @@ export default function Calender() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: 40, backgroundColor: "#fff", paddingHorizontal: 12 },
-  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
+  container: {
+     flex: 1, 
+    //  paddingTop: 40,
+      backgroundColor: "#fff",
+       paddingHorizontal: 12 
+      },
+  loadingContainer: {
+     flex: 1, 
+     justifyContent: "center",
+      alignItems: "center" 
+    },
   legendContainer: {
     flexDirection: "row",
     flexWrap: "wrap",

@@ -18,7 +18,7 @@ const Attendance = ({ navigation }) => {
 
       {/* Back button */}
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-        <Ionicons name="arrow-back" size={26} color="#377355" />
+        <Ionicons name="arrow-back" size={28} color="#000" />
       </TouchableOpacity>
 
       {/* Avatar and Button Section */}
@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: 'absolute',
-    top: 40,
+    top: 20,
     left: 20,
     zIndex: 1,
   },

@@ -28,7 +28,7 @@ import { launchCamera } from 'react-native-image-picker';
 
 const { LocationServiceBridge } = NativeModules;
 
-const EmployeeCheckinForm = () => {
+const EmployeeCheckinForm = ({navigation}) => {
     // --- State & flags (kept exactly as original) ---
     const [logType, setLogType] = useState('');
     const [showDropdown, setShowDropdown] = useState(false);
