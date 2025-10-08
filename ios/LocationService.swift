@@ -2,6 +2,7 @@ import CoreLocation
 import Foundation
 import Network
 import UIKit
+import React
 
 @objc(LocationServiceBridge)
 class LocationService: NSObject, CLLocationManagerDelegate {
@@ -149,6 +150,29 @@ class LocationService: NSObject, CLLocationManagerDelegate {
     UserDefaults.standard.set(sid, forKey: kSessionSidKey)
     UserDefaults.standard.synchronize()
   }
+
+  // Expose a debug getter for RN (promise)
+@objc func getDebugStatus(_ resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+  queueAccess.async {
+    let offline = self.loadOfflineQueueFromDisk()
+    let recent = offline.suffix(20).map { ["latitude": $0.latitude, "longitude": $0.longitude, "ts": $0.ts] }
+    let info: [String: Any] = [
+      "isNetworkAvailable": self.isNetworkAvailable,
+      "isSyncingOffline": self.isSyncingOffline,
+      "allowNetworkPosts": self.allowNetworkPosts,
+      "isTracking": (self.manager.location != nil),
+      "offlineCount": offline.count,
+      "offlineItems": recent,
+      "lastSentTs": self.lastSentAt
+    ]
+
+    // Resolve on main thread (safer for RN bridge)
+    DispatchQueue.main.async {
+      resolve(info)
+    }
+  }
+}
+
 
   // Explicit enable/disable network posting
   @objc func enableNetworkPosting() {
@@ -345,6 +369,9 @@ class LocationService: NSObject, CLLocationManagerDelegate {
         print("===DBG=== postLocation empty response body")
       }
 
+      // Notify JS that a post was sent now
+      NotificationCenter.default.post(name: Notification.Name("Location_LastSent"), object: nil, userInfo: ["ts": nowTs])
+
       // Success -> try to sync any queued items too
       self.syncOfflineLocationsIfNeeded()
     }
@@ -491,6 +518,14 @@ class LocationService: NSObject, CLLocationManagerDelegate {
       items.append(loc)
       self.writeOfflineQueueToDisk(items)
       print("===DBG=== Saved offline location. newCount:", items.count)
+
+      // Notify JS about offline save
+      let lastItem: [String: Any] = ["latitude": loc.latitude, "longitude": loc.longitude, "ts": loc.ts]
+      NotificationCenter.default.post(name: Notification.Name("Location_OfflineSaved"), object: nil, userInfo: [
+        "count": items.count,
+        "last_ts": loc.ts,
+        "last_item": lastItem
+      ])
     }
   }
 
@@ -632,6 +667,11 @@ class LocationService: NSObject, CLLocationManagerDelegate {
               diskItems.removeFirst()
               self.writeOfflineQueueToDisk(diskItems)
               print("===DBG=== removed first offline item from disk. remaining:", diskItems.count)
+
+              // Notify JS about sync progress (remaining items)
+              NotificationCenter.default.post(name: Notification.Name("Location_SyncProgress"), object: nil, userInfo: [
+                "remaining": diskItems.count
+              ])
             } else {
               print("===DBG=== warning: disk queue empty when trying to remove item \(idx)")
             }
@@ -670,6 +710,8 @@ class LocationService: NSObject, CLLocationManagerDelegate {
       if online != self.isNetworkAvailable {
         self.isNetworkAvailable = online
         print("===DBG=== Network availability changed: \(online)")
+        // Notify JS about network change
+        NotificationCenter.default.post(name: Notification.Name("Location_NetworkChanged"), object: nil, userInfo: ["online": online])
         if online {
           DispatchQueue.global().asyncAfter(deadline: .now() + 0.3) {
             if !self.isSyncingOffline {
@@ -686,6 +728,8 @@ class LocationService: NSObject, CLLocationManagerDelegate {
     if let current = monitor?.currentPath {
       self.isNetworkAvailable = (current.status == .satisfied)
       print("===DBG=== Initial network state:", self.isNetworkAvailable)
+      // notify initial state to JS
+      NotificationCenter.default.post(name: Notification.Name("Location_NetworkChanged"), object: nil, userInfo: ["online": self.isNetworkAvailable])
     }
   }
 
@@ -710,6 +754,7 @@ class LocationService: NSObject, CLLocationManagerDelegate {
     return df.string(from: date) // e.g. "2025-10-06 14:42:00"
   }
 }
+
 
 
 

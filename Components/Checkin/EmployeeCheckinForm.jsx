@@ -567,6 +567,12 @@ const EmployeeCheckinForm = ({ navigation }) => {
                         </TouchableOpacity>
                     </View>
                 </View>
+                   <TouchableOpacity
+                            style={styles.taskBtn}
+                            onPress={() => navigation.navigate("LocationDebugScreen")}
+                          >
+                            <Text style={styles.taskBtnText}>Debug Tracking</Text>
+                          </TouchableOpacity>
             </ScrollView>
         </ImageBackground>
     );
@@ -763,6 +769,18 @@ const styles = StyleSheet.create({
         marginLeft: 15,
         marginTop:15
     },
+     taskBtn: {
+    backgroundColor: "#377355",
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginTop: 15,
+    alignItems: "center",
+  },
+  taskBtnText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
 });
 
 export default EmployeeCheckinForm;

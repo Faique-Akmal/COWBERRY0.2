@@ -20,6 +20,7 @@ import SocketChatBox from "../Chats/screens/SocketChatBox";
 import CreateGroup from "../Chats/ThreeDot/CreateGroup";
 import EmployeeCheckinForm from "../Checkin/EmployeeCheckinForm";
 import LeaveApplications from "../DrawerPages/LeaveApplications";
+import LocationDebugScreen from "../Screens/LocationDebugScreen";
 
 const Stack = createStackNavigator();
 
@@ -100,6 +101,10 @@ export default function AppNavigator() {
       <Stack.Screen
         name="LeaveApplications"
         component={LeaveApplications}
+      />
+      <Stack.Screen
+        name="LocationDebugScreen"
+        component={LocationDebugScreen}
       />
     </Stack.Navigator>
   );
