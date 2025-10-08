@@ -28,7 +28,7 @@ import { launchCamera } from 'react-native-image-picker';
 
 const { LocationServiceBridge } = NativeModules;
 
-const EmployeeCheckinForm = ({navigation}) => {
+const EmployeeCheckinForm = ({ navigation }) => {
     // --- State & flags (kept exactly as original) ---
     const [logType, setLogType] = useState('');
     const [showDropdown, setShowDropdown] = useState(false);
@@ -440,12 +440,14 @@ const EmployeeCheckinForm = ({navigation}) => {
             source={require("../images/123.png")}
             style={{ flex: 1 }}
         >
+            {/* <TouchableOpacity style={styles.backWrap} onPress={() => navigation.goBack()}>
+                <Ionicons name="arrow-back" size={28} color="#000" />
+            </TouchableOpacity> */}
+
             <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.1)" }} />
             <ScrollView style={styles.page} contentContainerStyle={{ paddingVertical: 24 }}>
                 <View style={styles.container}>
-                    <TouchableOpacity style={styles.backWrap} onPress={() => navigation.goBack()}>
-                        <Ionicons name="arrow-back" size={28} color="#000" />
-                    </TouchableOpacity>
+
                     <View style={styles.card}>
                         <Text style={styles.title}>Employee Checkin</Text>
 
@@ -758,7 +760,8 @@ const styles = StyleSheet.create({
     // Back
     backWrap: {
         alignSelf: "flex-start",
-        marginBottom: 10,
+        marginLeft: 15,
+        marginTop:15
     },
 });
 

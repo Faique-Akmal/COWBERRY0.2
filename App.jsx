@@ -5,7 +5,7 @@ import React from 'react';
 import AppNavigator from './Components/Navigation/AppNavigator';
 import FloatingChatButton from './Components/Chats/components/FloatingChatButton';
 import { NavigationContainer } from '@react-navigation/native';
-import { navigationRef, navigate } from './Components/RootNavigation'; // ensure path correct
+import { navigationRef, navigate } from './Components/RootNavigation'; 
 
 const App = () => {
   // use the global helper instead of expecting `navigation` prop
@@ -15,17 +15,19 @@ const App = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+
       <NavigationContainer ref={navigationRef}>
         <AppNavigator />
       </NavigationContainer>
 
-      {/* Floating button placed after NavigationContainer so it overlays every screen */}
+      {/* Chat button placed after NavigationContainer so it overlays every screen */}
       <FloatingChatButton
         onPress={handleChatOpen}
-        badge={3} // example unread count
+        badge={5} // example unread count
         backgroundColor="#377355"
         iconName="chatbubble-ellipses"
       />
+
     </SafeAreaView>
   );
 };

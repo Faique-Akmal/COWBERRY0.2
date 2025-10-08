@@ -44,7 +44,7 @@ class LocationService : Service() {
   private val httpClient = OkHttpClient.Builder().connectTimeout(15, TimeUnit.SECONDS).build()
 
   // server endpoint — change to your endpoint (use https in prod)
-  private val serverUrl = "http://192.168.0.143:8000/api/method/cowberry_app.api.locationlog.add_employee_location"
+  private val serverUrl = "https://cowberry.frappe.cloud/api/method/cowberry_app.api.locationlog.add_employee_location"
 
   // offline queue file in cache dir
   private val offlineFile by lazy { File(cacheDir, "offline_locations.json") }
@@ -297,7 +297,7 @@ class LocationService : Service() {
       Log.w(TAG, "===DBG=== no refresh token available")
       return
     }
-    val refreshUrl = "http://192.168.0.143:8000/api/token/refresh/"
+    val refreshUrl = "https://cowberry.frappe.cloud/api/token/refresh/"
     val bodyJson = JSONObject().put("refresh", refresh)
     val body = RequestBody.create("application/json; charset=utf-8".toMediaType(), bodyJson.toString())
     val req = Request.Builder().url(refreshUrl).post(body).build()
