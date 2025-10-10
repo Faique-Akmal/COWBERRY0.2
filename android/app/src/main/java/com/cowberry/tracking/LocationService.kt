@@ -3,10 +3,12 @@ package com.cowberry.tracking
 import android.app.*
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkRequest
+import android.os.BatteryManager
 import android.os.Build
 import android.os.IBinder
 import android.os.Looper
@@ -207,12 +209,29 @@ class LocationService : Service() {
     Log.d(TAG, "===DBG=== No auth header available in native")
   }
 
+  // helper to zero-pad numbers to 2 digits
+  private fun pad2(n: Int): String = if (n < 10) "0$n" else n.toString()
+
   // -------------- Timestamp helpers --------------
-  // Local formatted datetime for backend validation (dd-MM-yyyy HH:mm:ss)
+  // Local formatted datetime for backend validation (MANUAL builder -> yyyy-MM-dd HH:mm:ss)
   private fun localDateTimeString(epochMillis: Long): String {
-    val df = SimpleDateFormat("dd-MM-yyyy HH:mm:ss", Locale.UK)
-    df.timeZone = TimeZone.getDefault()
-    return df.format(Date(epochMillis))
+    try {
+      val cal = Calendar.getInstance(TimeZone.getDefault(), Locale.getDefault())
+      cal.timeInMillis = epochMillis
+      val year = cal.get(Calendar.YEAR)
+      val month = cal.get(Calendar.MONTH) + 1 // Calendar.MONTH is 0-based
+      val day = cal.get(Calendar.DAY_OF_MONTH)
+      val hour = cal.get(Calendar.HOUR_OF_DAY)
+      val minute = cal.get(Calendar.MINUTE)
+      val second = cal.get(Calendar.SECOND)
+      // build exactly yyyy-MM-dd HH:mm:ss
+      return String.format(Locale.US, "%04d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second)
+    } catch (ex: Exception) {
+      // fallback to SimpleDateFormat just in case (shouldn't happen)
+      val df = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.UK)
+      df.timeZone = TimeZone.getDefault()
+      return df.format(Date(epochMillis))
+    }
   }
 
   // ISO8601 UTC with fractional seconds and Z
@@ -225,6 +244,40 @@ class LocationService : Service() {
   // timezone offset in minutes (positive if ahead of UTC)
   private fun tzOffsetMinutes(epochMillis: Long = System.currentTimeMillis()): Int {
     return TimeZone.getDefault().getOffset(epochMillis) / 60000
+  }
+
+  // --- NEW: get real battery percent (0-100)
+  private fun getBatteryPercent(): Int {
+    try {
+      // first try sticky intent
+      val ifilter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+      val batteryStatus = registerReceiver(null, ifilter)
+      if (batteryStatus != null) {
+        val level = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+        val scale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+        if (level >= 0 && scale > 0) {
+          return ((level * 100) / scale)
+        }
+      }
+    } catch (ex: Exception) {
+      Log.w(TAG, "===DBG=== getBatteryPercent intent method failed: ${ex.message}")
+    }
+
+    // fallback: BatteryManager property (API 21+)
+    try {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        val bm = getSystemService(BATTERY_SERVICE) as? BatteryManager
+        bm?.let {
+          val capacity = it.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+          if (capacity >= 0) return capacity
+        }
+      }
+    } catch (ex: Exception) {
+      Log.w(TAG, "===DBG=== getBatteryPercent BatteryManager method failed: ${ex.message}")
+    }
+
+    // last resort
+    return 0
   }
 
   // -------------------------
@@ -242,14 +295,15 @@ class LocationService : Service() {
     val timestampLocal = localDateTimeString(nowMs)
     val timestampUtc = iso8601UTCString(nowMs)
     val tzOffset = tzOffsetMinutes(nowMs)
+    val batteryPercent = getBatteryPercent()
 
     val json = JSONObject().apply {
       put("latitude", String.format(Locale.US, "%.6f", lat))
       put("longitude", String.format(Locale.US, "%.6f", lng))
-      put("battery", 0)
+      put("battery", batteryPercent)
       put("speed", speed)
       put("pause", false)
-      // keep "timestamp" as local formatted date-time (keeps dd-mm-yyyy validation happy)
+      // keep "timestamp" as local formatted date-time (yyyy-MM-dd HH:mm:ss)
       put("timestamp", timestampLocal)
       // also include canonical UTC
       put("timestamp_utc", timestampUtc)
@@ -350,6 +404,8 @@ class LocationService : Service() {
           put("speed", speed)
           // save unix epoch seconds at the time of offline save (kept as original)
           put("ts", System.currentTimeMillis() / 1000)
+          // save battery at time of offline save
+          put("battery", getBatteryPercent())
           val uid = readUserId()
           if (!uid.isNullOrEmpty()) put("user", uid)
         }
@@ -391,6 +447,8 @@ class LocationService : Service() {
           p.put("longitude", obj.optString("longitude"))
           p.put("speed", obj.optDouble("speed", 0.0))
           p.put("pause", false)
+          // include saved battery if present
+          p.put("battery", obj.optInt("battery", 0))
           if (obj.has("user")) p.put("user", obj.get("user"))
 
           // USE saved ts (seconds) to create timestamp fields for offline items
@@ -481,7 +539,10 @@ class LocationService : Service() {
   override fun onBind(intent: Intent?): IBinder? = null
 }
 
-// timestamp me ungli karne se pahle ka code
+
+
+
+// hard coded battery ko remove karne se pahle ka code
 
 // package com.cowberry.tracking
 
@@ -503,6 +564,8 @@ class LocationService : Service() {
 // import org.json.JSONObject
 // import java.io.File
 // import java.io.IOException
+// import java.text.SimpleDateFormat
+// import java.util.*
 // import java.util.concurrent.TimeUnit
 // import kotlin.concurrent.thread
 
@@ -534,7 +597,7 @@ class LocationService : Service() {
 //   private val maxOffline = 200
 //   private val syncBatchSize = 20
 
-//   @Volatile private var isSyncing = false 
+//   @Volatile private var isSyncing = false
 
 //   // network monitoring
 //   private var connectivityManager: ConnectivityManager? = null
@@ -690,6 +753,46 @@ class LocationService : Service() {
 //     Log.d(TAG, "===DBG=== No auth header available in native")
 //   }
 
+//   // helper to zero-pad numbers to 2 digits
+//   private fun pad2(n: Int): String = if (n < 10) "0$n" else n.toString()
+
+//   // -------------- Timestamp helpers --------------
+//   // Local formatted datetime for backend validation (MANUAL builder -> yyyy-MM-dd HH:mm:ss)
+//   private fun localDateTimeString(epochMillis: Long): String {
+//     try {
+//       val cal = Calendar.getInstance(TimeZone.getDefault(), Locale.getDefault())
+//       cal.timeInMillis = epochMillis
+//       val year = cal.get(Calendar.YEAR)
+//       val month = cal.get(Calendar.MONTH) + 1 // Calendar.MONTH is 0-based
+//       val day = cal.get(Calendar.DAY_OF_MONTH)
+//       val hour = cal.get(Calendar.HOUR_OF_DAY)
+//       val minute = cal.get(Calendar.MINUTE)
+//       val second = cal.get(Calendar.SECOND)
+//       // build exactly yyyy-MM-dd HH:mm:ss
+//       return String.format(Locale.US, "%04d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second)
+//     } catch (ex: Exception) {
+//       // fallback to SimpleDateFormat just in case (shouldn't happen)
+//       val df = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.UK)
+//       df.timeZone = TimeZone.getDefault()
+//       return df.format(Date(epochMillis))
+//     }
+//   }
+
+//   // ISO8601 UTC with fractional seconds and Z
+//   private fun iso8601UTCString(epochMillis: Long): String {
+//     val fmt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
+//     fmt.timeZone = TimeZone.getTimeZone("UTC")
+//     return fmt.format(Date(epochMillis))
+//   }
+
+//   // timezone offset in minutes (positive if ahead of UTC)
+//   private fun tzOffsetMinutes(epochMillis: Long = System.currentTimeMillis()): Int {
+//     return TimeZone.getDefault().getOffset(epochMillis) / 60000
+//   }
+
+//   // -------------------------
+//   // postLocation now includes timestamp fields (local + utc + tz offset)
+//   // -------------------------
 //   private fun postLocation(lat: Double, lng: Double, speed: Double) {
 //     // if posting disabled, save offline
 //     if (!isPostingEnabled()) {
@@ -698,18 +801,30 @@ class LocationService : Service() {
 //       return
 //     }
 
+//     val nowMs = System.currentTimeMillis()
+//     val timestampLocal = localDateTimeString(nowMs)
+//     val timestampUtc = iso8601UTCString(nowMs)
+//     val tzOffset = tzOffsetMinutes(nowMs)
+
 //     val json = JSONObject().apply {
-//       put("latitude", String.format("%.6f", lat))
-//       put("longitude", String.format("%.6f", lng))
+//       put("latitude", String.format(Locale.US, "%.6f", lat))
+//       put("longitude", String.format(Locale.US, "%.6f", lng))
 //       put("battery", 0)
 //       put("speed", speed)
 //       put("pause", false)
+//       // keep "timestamp" as local formatted date-time (yyyy-MM-dd HH:mm:ss)
+//       put("timestamp", timestampLocal)
+//       // also include canonical UTC
+//       put("timestamp_utc", timestampUtc)
+//       put("tz_offset_minutes", tzOffset)
 //     }
 
 //     val body = RequestBody.create("application/json; charset=utf-8".toMediaType(), json.toString())
 //     val builder = Request.Builder().url(serverUrl).post(body)
 //     addAuthHeaders(builder)
 //     val req = builder.build()
+
+//     Log.d(TAG, "===DBG=== postLocation payload: ${json.toString()}") // debug print
 
 //     httpClient.newCall(req).enqueue(object : Callback {
 //       override fun onFailure(call: Call, e: IOException) {
@@ -793,10 +908,10 @@ class LocationService : Service() {
 //           }
 //         } else mutableListOf()
 //         val item = JSONObject().apply {
-//           put("latitude", String.format("%.6f", lat))
-//           put("longitude", String.format("%.6f", lng))
+//           put("latitude", String.format(Locale.US, "%.6f", lat))
+//           put("longitude", String.format(Locale.US, "%.6f", lng))
 //           put("speed", speed)
-//           // save unix epoch seconds at the time of offline save
+//           // save unix epoch seconds at the time of offline save (kept as original)
 //           put("ts", System.currentTimeMillis() / 1000)
 //           val uid = readUserId()
 //           if (!uid.isNullOrEmpty()) put("user", uid)
@@ -840,7 +955,18 @@ class LocationService : Service() {
 //           p.put("speed", obj.optDouble("speed", 0.0))
 //           p.put("pause", false)
 //           if (obj.has("user")) p.put("user", obj.get("user"))
-//           // optionally include ts if backend expects it (but original logic omitted it)
+
+//           // USE saved ts (seconds) to create timestamp fields for offline items
+//           val tsSeconds = try { obj.optLong("ts", 0L) } catch (_: Exception) { 0L }
+//           val tsMillis = if (tsSeconds > 0L) tsSeconds * 1000L else System.currentTimeMillis()
+//           val timestampLocal = localDateTimeString(tsMillis)
+//           val timestampUtc = iso8601UTCString(tsMillis)
+//           val tzOffset = tzOffsetMinutes(tsMillis)
+
+//           p.put("timestamp", timestampLocal)
+//           p.put("timestamp_utc", timestampUtc)
+//           p.put("tz_offset_minutes", tzOffset)
+
 //           val body = RequestBody.create("application/json; charset=utf-8".toMediaType(), p.toString())
 //           addAuthHeaders(builder)
 //           val req = builder.post(body).build()
@@ -917,3 +1043,6 @@ class LocationService : Service() {
 
 //   override fun onBind(intent: Intent?): IBinder? = null
 // }
+
+
+

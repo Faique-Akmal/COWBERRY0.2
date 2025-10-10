@@ -29,30 +29,26 @@ export default function Home({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
 
   // Common function for fetch
-  // Fetch Data
   const fetchData = async () => {
     try {
-      // 👇 Changed API for user data
       const userRes = await axiosInstance.get("/cowberry_app.api.me.me_api");
-      const user = userRes.data.message.user; // extract user object
+      const user = userRes.data.message.user;
 
       setUserData({
         id: user.id,
         email: user.email,
         full_name: user.full_name,
-        role: user.roles?.[0] || "", 
+        role: user.roles?.[0] || "",
         employee_id: user.employee_id,
         is_checkin: user.is_checkin,
         last_checkin_time: user.last_checkin_time,
       });
 
-      // ---- CHANGED: use new backend API and response shape ----
       const taskRes = await axiosInstance.get("/cowberry_app.api.tasks.get_my_tasks");
       const tasks = taskRes.data?.message?.tasks || [];
 
       const total = tasks.length;
 
-      // Consider a task completed if status === 'Completed' (case-insensitive) or progress >= 100
       const isCompleted = (t) => {
         const status = (t.status || "").toString().toLowerCase();
         const progress = Number(t.progress || 0);
@@ -63,7 +59,6 @@ export default function Home({ navigation }) {
       const active = tasks.filter((t) => !isCompleted(t)).length;
 
       const today = new Date().toISOString().split("T")[0];
-      // Use exp_start_date to determine due (if exp_start_date < today and not completed)
       const due = tasks.filter((t) => {
         const start = t.exp_start_date || t.exp_start_date;
         return (
@@ -74,7 +69,6 @@ export default function Home({ navigation }) {
         );
       }).length;
 
-      // average progress across tasks (use task.progress where available)
       const progress =
         total > 0
           ? Math.round(
@@ -91,23 +85,26 @@ export default function Home({ navigation }) {
     }
   };
 
-
   //  Initial fetch
   useEffect(() => {
     fetchData();
   }, []);
 
-  // Pull-to-refresh handler (like instagram ulta scroll)
+  // Pull-to-refresh handler
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchData();
   }, []);
 
+  // --- NOTE: add RefreshControl to BOTH ScrollViews so loading-screen भी refresh कर सके ---
   if (loading && !refreshing) {
     return (
-
-      <ScrollView style={{ flex: 1, padding: 15 }}>
-
+      <ScrollView
+        style={{ flex: 1, padding: 15 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         {/* Greeting shimmer */}
         <View style={styles.greetingBox}>
           <Shimmer style={{ height: 20, marginBottom: 10, borderRadius: 5 }} />
@@ -148,11 +145,10 @@ export default function Home({ navigation }) {
         contentContainerStyle={{ flexGrow: 1, paddingBottom: 60 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} /> // Pull to refresh
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
         <View style={styles.container}>
-        
           {/* Greeting */}
           <View style={styles.greetingBox}>
             <Text style={styles.greetingText}>
@@ -174,20 +170,9 @@ export default function Home({ navigation }) {
             />
             <Text style={styles.name}>{userData?.full_name}</Text>
             <View style={styles.roleContainer}>
-    <Text style={styles.role}>Role : {userData?.role}</Text>
-    <Text style={styles.employeeId}>Employee ID : {userData?.employee_id}</Text>
-  </View>
-            {/* <TouchableOpacity
-              style={styles.editBtn}>
-              <Text
-                style={styles.editText}
-                onPress={() => navigation.navigate("UpdateProfile", { userData })}
-              >
-                Edit
-              </Text>
-            </TouchableOpacity> */}
+              <Text style={styles.role}>Role : {userData?.role}</Text>
+            </View>
           </View>
-
 
           {/* Task Updates (Dynamic) */}
           <Text style={styles.taskHeading}>TASK UPDATES</Text>

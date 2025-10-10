@@ -29,8 +29,8 @@ class LocationService: NSObject, CLLocationManagerDelegate {
   private let kMaxAuthFailures: Int = 3
 
   // Frappe endpoint (single endpoint URL)
-  private let apiBase = "http://192.168.0.143:8000/api/method/cowberry_app.api.locationlog.add_employee_location"
-  // private let apiBase = "https://cowberry.frappe.cloud/api/method/cowberry_app.api.locationlog.add_employee_location"
+  // private let apiBase = "http://192.168.0.143:8000/api/method/cowberry_app.api.locationlog.add_employee_location"
+  private let apiBase = "https://cowberry.frappe.cloud/api/method/cowberry_app.api.locationlog.add_employee_location"
 
 
   // offline queue file
@@ -411,7 +411,7 @@ class LocationService: NSObject, CLLocationManagerDelegate {
       print("===DBG=== performTokenRefresh: no refresh token available")
       completion(false); return
     }
-    guard let url = URL(string: "http://192.168.0.143:8000/api/token/refresh/") else {
+    guard let url = URL(string: "https://cowberry.frappe.cloud/api/token/refresh/") else {
       print("===DBG=== performTokenRefresh: invalid URL")
       completion(false); return
     }
