@@ -205,22 +205,24 @@ const DrawerLeftHeader = () => {
       <TouchableOpacity onPress={() => navigation.toggleDrawer()}>
         <Image
           source={require('../images/hamburger.png')}
-          style={{ width: 24, height: 24, marginLeft:20, marginTop:10 }}
+          style={{ width: 24, height: 24, marginLeft:15, marginTop:10, marginRight:10 }}
         />
       </TouchableOpacity>
       <TouchableOpacity onPress={() => navigation.navigate('BottomScreen', { screen: 'Home' })}>
         <Text
-          style={{
-            fontSize: 20,
-            fontWeight: 'bold',
-            color: '#377355', // Match theme color from your styles
-            textAlign: 'center',
-            width: 120, // Match original image width
-            paddingVertical: 5, // Adjust for vertical alignment
-          }}
-        >
-          {companyName}
-        </Text>
+    numberOfLines={1}
+    ellipsizeMode="tail"
+    style={{
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: '#377355',
+      textAlign: 'center',
+      width: 300,
+      paddingVertical: 5,
+    }}
+  >
+   {companyName}
+  </Text>
       </TouchableOpacity>
       <View style={{ width: 24 }} />
     </View>

@@ -13,7 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axiosInstance from '../TokenHandling/axiosInstance'; // Adjust path as per your project
 
 const { width } = Dimensions.get('window');
-const TEXT_WIDTH = 350; 
+const TEXT_WIDTH = 950; 
 
 const Home = () => {
   const scrollAnim = useRef(new Animated.Value(0)).current;
@@ -55,7 +55,7 @@ const Home = () => {
         Animated.sequence([
           Animated.timing(scrollAnim, {
             toValue: 1, 
-            duration: 6000, 
+            duration: 8000, 
             easing: Easing.linear,
             useNativeDriver: true, 
           }),

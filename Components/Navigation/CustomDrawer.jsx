@@ -99,9 +99,9 @@ const CustomDrawer = (props) => {
                 <>
                   <Text style={styles.name}>{userData.full_name}</Text>
                    <Text style={styles.email}>{userData.email}</Text>
-                  <Text style={styles.role}>Employee_id : {userData.employee_id}</Text>
-                  <Text style={styles.role}>Company: {userData.company}</Text>
-                  <Text style={styles.role}>Role: {userData.role}</Text>
+                 <Text style={styles.role}>Employee_id : {userData.employee_id}</Text>
+                  {/* <Text style={styles.role}>Company: {userData.company}</Text>*/}
+                  {/* <Text style={styles.role}>Role: {userData.role}</Text> */}
                 </>
               ) : (
                 <ActivityIndicator size="small" color="#4E8D7C" />
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     // marginLeft: 15,
     marginTop: 10,
     alignItems: 'center',
-   
+   marginBottom:10
   },
   name: {
     fontSize: 18,
