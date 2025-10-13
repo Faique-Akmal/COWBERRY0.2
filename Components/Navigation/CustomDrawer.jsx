@@ -149,6 +149,12 @@ const CustomDrawer = (props) => {
          <Text style={styles.newButtonText}>Leave Applications</Text>
       </TouchableOpacity>
 
+
+          <TouchableOpacity style={[styles.customButton]} onPress={() => navigation.navigate('AboutUs')}>
+            <Ionicons name="information-circle-sharp" size={20} color="rgba(255, 255, 255, 0.9)" />
+            <Text style={styles.newButtonText}>About Us</Text>
+          </TouchableOpacity>
+
         </View>
       </DrawerContentScrollView>
 
