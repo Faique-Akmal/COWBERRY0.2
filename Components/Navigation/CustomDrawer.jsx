@@ -154,6 +154,10 @@ const CustomDrawer = (props) => {
             <Ionicons name="information-circle-sharp" size={20} color="rgba(255, 255, 255, 0.9)" />
             <Text style={styles.newButtonText}>About Us</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={[styles.customButton]} onPress={() => navigation.navigate('ShareScreen')}>
+            <Ionicons name="information-circle-sharp" size={20} color="rgba(255, 255, 255, 0.9)" />
+            <Text style={styles.newButtonText}>Share</Text>
+          </TouchableOpacity>
 
         </View>
       </DrawerContentScrollView>

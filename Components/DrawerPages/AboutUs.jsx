@@ -76,6 +76,9 @@ const AboutUs = ({ onVisitStore }) => {
 
                 <Animated.View style={[styles.brandRow, { opacity: fadeAnim }]}>
                     <Image source={LOGO} style={styles.logo} resizeMode="contain" />
+                    <View style={styles.brandText}>
+                        <Text style={styles.tagline}>Organics</Text>
+                    </View>
                 </Animated.View>
 
                 <Animated.View style={[styles.card, { opacity: fadeAnim }]}>
@@ -227,7 +230,7 @@ const styles = StyleSheet.create({
         marginLeft: 10,
     },
     tagline: {
-        fontSize: 13,
+        fontSize: 16,
         color: '#4A6A4A',
         fontWeight: '500',
         // letterSpacing: 0.1,
