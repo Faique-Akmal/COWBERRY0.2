@@ -22,6 +22,8 @@ import EmployeeCheckinForm from "../Checkin/EmployeeCheckinForm";
 import LeaveApplications from "../DrawerPages/LeaveApplications";
 import AboutUs from "../DrawerPages/AboutUs";
 import ShareScreen from "../DrawerPages/ShareScreen";
+import ChatsList from "../NewChats/  ChatsList";
+import { ChatScreen } from "../Chats";
 
 
 
@@ -89,10 +91,10 @@ export default function AppNavigator() {
         name="SocketChatBox"
         component={SocketChatBox}
       />
-      <Stack.Screen
+      {/* <Stack.Screen
         name="CreateGroup"
         component={CreateGroup}
-      />
+      /> */}
       <Stack.Screen
         name="TokenDebug"
         component={TokenDebugScreen}
@@ -112,6 +114,15 @@ export default function AppNavigator() {
        <Stack.Screen
         name="ShareScreen"
         component={ShareScreen}
+      />
+      {/* Chats */}
+         <Stack.Screen
+        name="ChatsList"
+        component={ChatsList}
+      />
+         <Stack.Screen
+        name="ChatScreen"
+        component={ChatScreen}
       />
     </Stack.Navigator>
   );

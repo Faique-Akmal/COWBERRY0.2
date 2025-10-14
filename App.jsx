@@ -14,7 +14,7 @@ const App = () => {
   const excludedRoutes = ['LoginScreen']; 
 
   const handleChatOpen = () => { 
-    navigate('SocketChatBox');
+    navigate('ChatsList');
   };
 
   // helper to decide show/hide
