@@ -22,8 +22,8 @@ import EmployeeCheckinForm from "../Checkin/EmployeeCheckinForm";
 import LeaveApplications from "../DrawerPages/LeaveApplications";
 import AboutUs from "../DrawerPages/AboutUs";
 import ShareScreen from "../DrawerPages/ShareScreen";
-import ChatsList from "../NewChats/  ChatsList";
-import { ChatScreen } from "../Chats";
+import NewChatScreen from "../NewChats/NewChatScreen";
+import NewChatsList from "../NewChats/  NewChatsList";
 
 
 
@@ -87,10 +87,10 @@ export default function AppNavigator() {
         name="UpdateProfile"
         component={UpdateProfile}
       />
-      <Stack.Screen
+      {/* <Stack.Screen
         name="SocketChatBox"
         component={SocketChatBox}
-      />
+      /> */}
       {/* <Stack.Screen
         name="CreateGroup"
         component={CreateGroup}
@@ -117,12 +117,12 @@ export default function AppNavigator() {
       />
       {/* Chats */}
          <Stack.Screen
-        name="ChatsList"
-        component={ChatsList}
+        name="NewChatsList"
+        component={NewChatsList}
       />
          <Stack.Screen
-        name="ChatScreen"
-        component={ChatScreen}
+        name="NewChatScreen"
+        component={NewChatScreen}
       />
     </Stack.Navigator>
   );

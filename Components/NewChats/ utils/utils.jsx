@@ -4,10 +4,14 @@ export const makeId = (prefix = '') =>
 
 export const formatTime = (ts) => {
   const d = new Date(ts);
-  const hh = d.getHours();
-  const mm = d.getMinutes().toString().padStart(2, '0');
-  return `${hh}:${mm}`;
+  let hours = d.getHours();
+  const minutes = d.getMinutes().toString().padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12; // 0 ko 12 banana (midnight fix)
+  return `${hours}:${minutes} ${ampm}`;
 };
+
 
 export const sampleConversations = () => ([
   {

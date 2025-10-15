@@ -4,11 +4,11 @@ import { SafeAreaView, FlatList, View, Text, StyleSheet } from 'react-native';
 import ChatItem from './components/ChatItem';
 import { sampleConversations } from './ utils/utils';
 
-const ChatsList = ({ navigation }) => {
+const NewChatsList = ({ navigation }) => {
   const [convs, setConvs] = useState(sampleConversations());
 
   const openChat = (conv) => {
-    navigation.navigate('ChatScreen', { convId: conv.id, conv });
+    navigation.navigate('NewChatScreen', { convId: conv.id, conv });
   };
 
   return (
@@ -28,4 +28,4 @@ const styles = StyleSheet.create({
   h1:{ fontSize:22, fontWeight:'700' }
 });
 
-export default ChatsList;
+export default NewChatsList;
