@@ -806,7 +806,7 @@ export default function ChatScreen({ route }) {
   const renderLoading = () => <DotLoader />;
 
   const baseBottomOffset = Platform.select({ ios: 130, android: 110 });
-  const keyboardOffset = Platform.select({ ios: 43, android: 0 });
+  const keyboardOffset = Platform.select({ ios: 43, android: 32 });
 
   return (
     <ImageBackground source={require("../../images/123.png")} style={{ flex: 1 }} resizeMode="cover">
@@ -1042,7 +1042,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#000",
+    borderColor: "#377355",
     borderRadius: 10,
     paddingHorizontal: 15,
     paddingVertical: 10,
