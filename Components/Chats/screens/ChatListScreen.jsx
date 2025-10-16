@@ -350,7 +350,7 @@ const ChatListScreen = () => {
         flexDirection: "row",
         alignItems: "center",
         padding: 12,
-        backgroundColor: "#DAC496",
+        backgroundColor: "#fff",
         marginVertical: 3,
         marginHorizontal: 5,
         borderRadius: 10,
@@ -365,12 +365,12 @@ const ChatListScreen = () => {
           height: 40,
           borderRadius: 20,
           marginRight: 12,
-          borderColor: "#016730",
+          borderColor: "#F5F6F5",
           borderWidth: 1,
         }}
       />
       <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 16, fontWeight: "600", color: "#016730" }}>{item.first_name || item.username}</Text>
+        <Text style={{ fontSize: 16, fontWeight: "600", color: "#000" }}>{item.first_name || item.username}</Text>
         <Text style={{ color: "#000" }}>{item.email}</Text>
       </View>
       <View
@@ -401,7 +401,7 @@ const ChatListScreen = () => {
         flexDirection: "row",
         alignItems: "center",
         padding: 12,
-        backgroundColor: "#DAC496",
+        backgroundColor: "#fff",
         marginVertical: 3,
         marginHorizontal: 5,
         borderRadius: 10,
@@ -415,11 +415,11 @@ const ChatListScreen = () => {
           borderRadius: 20,
           marginRight: 12,
           borderWidth: 1,
-          borderColor: "#016730",
+          borderColor: "#F5F6F5",
         }}
       />
       <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 16, fontWeight: "600", color: "#016730" }}>{item.group_name}</Text>
+        <Text style={{ fontSize: 16, fontWeight: "600", color: "#000" }}>{item.group_name}</Text>
         <Text style={{ color: "#000" }}>Members: {item.members?.length || 0}</Text>
       </View>
     </TouchableOpacity>
@@ -434,19 +434,19 @@ const ChatListScreen = () => {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#B27F59" }}>
+    <View style={{ flex: 1, backgroundColor: "#F5F6F5" }}>
       <FlatList
         ListHeaderComponent={
           <>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", margin: 10 }}>
-              <Text style={{ fontSize: 18, fontWeight: "800", color: "#FFF" }}>Groups</Text>
+              <Text style={{ fontSize: 18, fontWeight: "800", color: "#000" }}>Groups</Text>
               <TouchableOpacity onPress={showGroupOptions}>
-                <Ionicons name="ellipsis-vertical" size={30} color="#FFF" />
+                <Ionicons name="ellipsis-vertical" size={30} color="#000" />
               </TouchableOpacity>
             </View>
 
             <FlatList data={groups} renderItem={renderGroupItem} keyExtractor={(item) => `group-${item.group_id}`} />
-            <Text style={{ fontSize: 18, fontWeight: "800", color: "#FFF", margin: 10 }}>Users</Text>
+            <Text style={{ fontSize: 18, fontWeight: "800", color: "#000", margin: 10 }}>Users</Text>
           </>
         }
         data={users}
