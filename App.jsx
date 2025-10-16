@@ -11,7 +11,7 @@ const App = () => {
   const [currentRoute, setCurrentRoute] = useState(null);
 
   // Jis screen par chat button show nhi karna hai usko yha add kar do
-  const excludedRoutes = ['LoginScreen', 'ChatListScreen', 'ChatScreen']; 
+  const excludedRoutes = ['LoginScreen', 'ChatList', 'ChatScreen', 'SocketChatBox']; 
 
   const handleChatOpen = () => { 
     navigate('SocketChatBox');

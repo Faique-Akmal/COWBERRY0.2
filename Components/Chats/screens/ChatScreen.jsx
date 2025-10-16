@@ -30,7 +30,7 @@ import ChatBubble from "../components/ChatBubble";
 import { useNavigation } from "@react-navigation/native";
 import debounce from "lodash.debounce";
 import DocumentPicker from "react-native-document-picker";
-import { launchImageLibrary } from "react-native-image-picker";
+import { launchImageLibrary, launchCamera } from "react-native-image-picker";
 import Geolocation from "react-native-geolocation-service";
 import RNFS from "react-native-fs";
 import { Video as VideoCompressor } from "react-native-compressor";
@@ -106,11 +106,13 @@ function FloatingAttachmentMenu({
         return;
       }
       setSelectedMedia((prev) => [...prev, ...assets]);
+      // close menu for better preview
+      toggle();
     } catch (e) {
       console.log("internalImageHandler error:", e);
       Alert.alert("Image error", "Could not open gallery.");
     }
-  }, [onImagePressProp]);
+  }, [onImagePressProp, toggle]);
 
   const internalDocHandler = useCallback(async () => {
     try {
@@ -138,12 +140,13 @@ function FloatingAttachmentMenu({
         return;
       }
       setSelectedDocs((prev) => [...prev, ...docs]);
+      toggle();
     } catch (err) {
       if (DocumentPicker.isCancel(err)) return;
       console.log("internalDocHandler error", err);
       Alert.alert("Document error", "Could not pick document.");
     }
-  }, [onDocPressProp]);
+  }, [onDocPressProp, toggle]);
 
   const requestAndroidLocationPermission = async () => {
     if (Platform.OS !== "android") return true;
@@ -181,6 +184,7 @@ function FloatingAttachmentMenu({
             return;
           }
           setSelectedLocation({ latitude, longitude });
+          toggle();
         },
         (err) => {
           console.log("Geolocation error:", err);
@@ -192,7 +196,7 @@ function FloatingAttachmentMenu({
       console.log("internalLocationHandler outer error", e);
       Alert.alert("Location error", "Could not get location.");
     }
-  }, [onLocationPressProp]);
+  }, [onLocationPressProp, toggle]);
 
   const sendSelectedMedia = useCallback(
     async (caption = "") => {
@@ -218,6 +222,7 @@ function FloatingAttachmentMenu({
         console.log("onLocationPressProp error", e);
       }
       setSelectedLocation(null);
+      toggle();
       return;
     }
 
@@ -269,12 +274,51 @@ function FloatingAttachmentMenu({
     setSelectedDocs((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
+  // CAMERA handler: opens camera, captures image, then adds to selectedMedia (or calls parent) and closes menu
+  const internalCameraHandler = useCallback(async () => {
+    try {
+      const options = {
+        mediaType: "photo",
+        saveToPhotos: false,
+        cameraType: "back",
+      };
+      const res = await launchCamera(options);
+      if (res.didCancel) return;
+      if (!res.assets || res.assets.length === 0) return;
+      const a = res.assets[0];
+      const photo = {
+        uri: a.uri,
+        name: a.fileName || `photo_${Date.now()}.jpg`,
+        type: a.type || "image/jpeg",
+        size: a.fileSize || null,
+      };
+
+      if (typeof onImagePressProp === "function") {
+        try {
+          onImagePressProp([photo]);
+        } catch (e) {
+          console.log("onImagePressProp error (camera)", e);
+        }
+        return;
+      }
+
+      // otherwise, add to internal selected media and close the 9-dot menu so image is visible
+      setSelectedMedia((prev) => [...prev, photo]);
+      toggle();
+    } catch (e) {
+      console.log("internalCameraHandler error:", e);
+      Alert.alert("Camera error", "Could not open camera.");
+    }
+  }, [onImagePressProp, toggle]);
+
   const pins = [
-    { key: "image", ox: 1, oy: 0, onPress: handleImage, icon: <Feather name="image" size={16} color="#fff" /> },
-    { key: "doc", ox: -1, oy: 0, onPress: handleDoc, icon: <Feather name="file-text" size={16} color="#fff" /> },
-    { key: "location", ox: 0, oy: -1, onPress: handleLocation, icon: <Feather name="map-pin" size={16} color="#fff" /> },
-    { key: "theme", ox: 0, oy: 1, onPress: handleTheme, icon: <Ionicons name="moon" size={16} color="#fff" /> },
-    { key: "close", ox: 0, oy: 0, onPress: toggle, icon: <Ionicons name="close" size={18} color="#fff" /> },
+    { key: "image", ox: 1, oy: 0, onPress: handleImage, icon: <Feather name="image" size={16} color="#377355" /> },
+    { key: "doc", ox: -1, oy: 0, onPress: handleDoc, icon: <Feather name="file-text" size={16} color="#377355" /> },
+    { key: "location", ox: 0, oy: -1, onPress: handleLocation, icon: <Feather name="map-pin" size={16} color="#377355" /> },
+    // bottom: CAMERA
+    { key: "camera", ox: 0, oy: 1, onPress: internalCameraHandler, icon: <Ionicons name="camera" size={18} color="#377355" /> },
+    // center: CLOSE (keeps original close behavior)
+    { key: "close", ox: 0, oy: 0, onPress: toggle, icon: <Ionicons name="close" size={18} color="#377355" /> },
   ];
 
   return (
@@ -320,7 +364,7 @@ function FloatingAttachmentMenu({
                 >
                   <Feather name="x" size={16} color="#fff" />
                 </TouchableOpacity>
-                <Text numberOfLines={1} style={{ maxWidth: 70, fontSize: 11 }}>{m.name}</Text>
+                {/* <Text numberOfLines={1} style={{ maxWidth: 70, fontSize: 11 }}>{m.name}</Text> */}
               </View>
             ))}
           </ScrollView>
@@ -333,22 +377,34 @@ function FloatingAttachmentMenu({
       )}
 
       {selectedDocs.length > 0 && (
-        <View style={styles.previewBox}>
-          <ScrollView horizontal>
+        <View style={styles.docsPreviewBox}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 6 }}>
             {selectedDocs.map((d, i) => (
-              <View key={i} style={{ marginRight: 8, alignItems: "center", width: 140, position: "relative" }}>
-                <Feather name="file" size={36} color="#333" />
-                <TouchableOpacity
-                  style={styles.removeBtn}
-                  onPress={() => removeSelectedDoc(i)}
-                  accessibilityLabel={`Remove ${d.name}`}
-                >
-                  <Feather name="x" size={16} color="#fff" />
-                </TouchableOpacity>
-                <Text numberOfLines={1} style={{ maxWidth: 120, fontSize: 12 }}>{d.name}</Text>
+              <View key={i} style={styles.docCard}>
+                <View style={styles.docLeft}>
+                  <View style={styles.docIconBox}>
+                    <Feather name="file" size={28} color="#377355" />
+                  </View>
+                </View>
+
+                <View style={styles.docCenter}>
+                  <Text numberOfLines={1} style={styles.docName}>{d.name || `Document ${i + 1}`}</Text>
+                  {d.size ? (
+                    <Text style={styles.docMeta}>{(d.size / 1024).toFixed(1)} KB</Text>
+                  ) : (
+                    <Text style={styles.docMetaSmall}>{d.type || "Document"}</Text>
+                  )}
+                </View>
+
+                <View style={styles.docRight}>
+                  <TouchableOpacity onPress={() => removeSelectedDoc(i)} style={styles.docRemoveBtn} accessibilityLabel={`Remove ${d.name}`}>
+                    <Feather name="x" size={14} color="#fff" />
+                  </TouchableOpacity>
+                </View>
               </View>
             ))}
           </ScrollView>
+
           <View style={{ marginTop: 8, flexDirection: "row", justifyContent: "flex-end" }}>
             <TouchableOpacity style={styles.sendBtn} onPress={() => sendSelectedDocs()}>
               <Text style={styles.sendText}>Send</Text>
@@ -356,6 +412,7 @@ function FloatingAttachmentMenu({
           </View>
         </View>
       )}
+
 
       {selectedLocation && (
         <View style={styles.previewBox}>
@@ -406,6 +463,7 @@ export default function ChatScreen({ route }) {
   const sendTypingRef = useRef(null);
   const [isLoadingMessages, setIsLoadingMessages] = useState(true);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem("userId")
@@ -416,21 +474,24 @@ export default function ChatScreen({ route }) {
   }, []);
 
   useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener(
-      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
-      (event) => {
-        setKeyboardHeight(event.endCoordinates.height);
-      }
-    );
+    const handleKeyboardShow = (event) => {
+      setKeyboardHeight(event.endCoordinates.height);
+      setIsKeyboardVisible(true);
+    };
+
+    const handleKeyboardHide = () => {
+      setKeyboardHeight(0);
+      setIsKeyboardVisible(false);
+    };
+
+    const keyboardWillShowListener = Keyboard.addListener("keyboardWillShow", handleKeyboardShow);
     const keyboardDidHideListener = Keyboard.addListener(
       Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
-      () => {
-        setKeyboardHeight(0);
-      }
+      handleKeyboardHide
     );
 
     return () => {
-      keyboardDidShowListener.remove();
+      keyboardWillShowListener.remove();
       keyboardDidHideListener.remove();
     };
   }, []);
@@ -791,7 +852,7 @@ export default function ChatScreen({ route }) {
       .then((supported) => (supported ? Linking.openURL(geoUrl) : Linking.openURL(webUrl)))
       .catch((err) => {
         console.log("openMaps error", err);
-        Linking.openURL(webUrl).catch(() => {});
+        Linking.openURL(webUrl).catch(() => { });
       });
   };
 
@@ -805,16 +866,20 @@ export default function ChatScreen({ route }) {
 
   const renderLoading = () => <DotLoader />;
 
-  const baseBottomOffset = Platform.select({ ios: 130, android: 110 });
-  const keyboardOffset = Platform.select({ ios: 43, android: 32 });
+  const baseBottomOffset = Platform.select({ ios: 130, android: 130 });
+  const keyboardVerticalOffset = Platform.select({
+    ios: 43,
+    android: isKeyboardVisible ? 10 : 0,
+  });
 
   return (
     <ImageBackground source={require("../../images/123.png")} style={{ flex: 1 }} resizeMode="cover">
       <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.1)" }} />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={keyboardOffset}
+        behavior="padding"
+        keyboardVerticalOffset={keyboardVerticalOffset}
+        enabled={isKeyboardVisible}
       >
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 10 }}>
@@ -888,7 +953,7 @@ export default function ChatScreen({ route }) {
                   >
                     <Feather name="x" size={16} color="#fff" />
                   </TouchableOpacity>
-                  <Text numberOfLines={1} style={{ maxWidth: 70, fontSize: 11 }}>{m.name}</Text>
+                  {/* <Text numberOfLines={1} style={{ maxWidth: 70, fontSize: 11 }}>{m.name}</Text> */}
                 </View>
               ))}
             </ScrollView>
@@ -896,24 +961,36 @@ export default function ChatScreen({ route }) {
         )}
 
         {pendingDocs && pendingDocs.length > 0 && (
-          <View style={styles.previewBox}>
-            <ScrollView horizontal>
+          <View style={styles.docsPreviewBox}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 6 }}>
               {pendingDocs.map((d, i) => (
-                <View key={i} style={{ marginRight: 8, alignItems: "center", width: 140, position: "relative" }}>
-                  <Feather name="file" size={36} color="#333" />
-                  <TouchableOpacity
-                    style={styles.removeBtn}
-                    onPress={() => removePendingDoc(i)}
-                    accessibilityLabel={`Remove ${d.name}`}
-                  >
-                    <Feather name="x" size={16} color="#fff" />
-                  </TouchableOpacity>
-                  <Text numberOfLines={1} style={{ maxWidth: 120, fontSize: 12 }}>{d.name}</Text>
+                <View key={i} style={styles.docCard}>
+                  <View style={styles.docLeft}>
+                    <View style={styles.docIconBox}>
+                      <Feather name="file" size={28} color="#377355" />
+                    </View>
+                  </View>
+
+                  <View style={styles.docCenter}>
+                    <Text numberOfLines={1} style={styles.docName}>{d.name || `Document ${i + 1}`}</Text>
+                    {d.size ? (
+                      <Text style={styles.docMeta}>{(d.size / 1024).toFixed(1)} KB</Text>
+                    ) : (
+                      <Text style={styles.docMetaSmall}>{d.type || "Document"}</Text>
+                    )}
+                  </View>
+
+                  <View style={styles.docRight}>
+                    <TouchableOpacity onPress={() => removePendingDoc(i)} style={styles.docRemoveBtn} accessibilityLabel={`Remove ${d.name}`}>
+                      <Feather name="x" size={14} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               ))}
             </ScrollView>
           </View>
         )}
+
 
         {pendingLocation && (
           <View style={styles.pendingLocationBox}>
@@ -927,7 +1004,7 @@ export default function ChatScreen({ route }) {
               />
               <View style={{ marginLeft: 8, flex: 1 }}>
                 <Text numberOfLines={1} style={{ fontWeight: "700" }}>
-                  Location selected
+                  Live Location
                 </Text>
                 <Text style={{ color: "#666", marginTop: 2 }}>
                   {pendingLocation.latitude.toFixed(5)}, {pendingLocation.longitude.toFixed(5)}
@@ -941,28 +1018,44 @@ export default function ChatScreen({ route }) {
         )}
 
         <View style={styles.inputRow}>
-          <TouchableOpacity style={{ marginRight: 8 }} onPress={() => setShowAttachmentMenu((s) => !s)}>
-            <MaterialCommunityIcons name="dots-grid" size={30} color="#377355" />
+          <TouchableOpacity
+            style={{
+              // marginRight: 8,
+              padding: 6,
+            }}
+            onPress={() => setShowAttachmentMenu((s) => !s)}
+          >
+            <MaterialCommunityIcons name="dots-grid" size={40} color="#377355" />
+            {/* icon white */}
           </TouchableOpacity>
+
           <TextInput
-            style={styles.input}
+            style={[styles.input, { fontSize: 18 }]}
             value={input}
             onChangeText={(text) => setInput(text)}
-            placeholder={pendingLocation ? "Add a caption..." : "Type a message..."}
+            placeholder={pendingLocation ? "Add a caption..." : "Message"}
             onSubmitEditing={() => sendMessage()}
             returnKeyType="send"
             multiline
           />
-          <TouchableOpacity onPress={() => sendMessage()}>
-            <Ionicons name="send" size={24} color="#377355" />
+          <TouchableOpacity
+            onPress={() => sendMessage()}
+            style={{
+              marginRight: 8,
+              backgroundColor: '#377355',
+              borderRadius: 50,
+              padding: 10,
+            }}
+          >
+            <Ionicons name="send" size={24} color="#fff" />
           </TouchableOpacity>
         </View>
 
         <FloatingAttachmentMenu
           show={showAttachmentMenu}
           toggle={() => setShowAttachmentMenu((s) => !s)}
-          bottomOffset={baseBottomOffset + keyboardHeight}
-          dropDistance={70}
+          bottomOffset={baseBottomOffset + (isKeyboardVisible ? keyboardHeight : 0)}
+          dropDistance={50}
           chatId={chatInfo.chatId}
           chatType={chatInfo.chatType}
           onImagePress={handleMediaChosen}
@@ -1034,20 +1127,23 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 8,
+    padding: 2,
     backgroundColor: "#fff",
-    borderTopColor: "#000",
-    borderTopWidth: 1,
+    borderRadius: 50,
+    marginHorizontal: 4,
+    marginBottom: 3,
+
   },
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#377355",
+    borderColor: "transparent",
     borderRadius: 10,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
+    // paddingHorizontal: 15,
+    paddingVertical: 1,
     marginRight: 8,
     maxHeight: 120,
+
   },
   modalOverlay: {
     flex: 1,
@@ -1095,7 +1191,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: "#10B981",
+    backgroundColor: "#377355",
     alignItems: "center",
     justifyContent: "center",
     overflow: "visible",
@@ -1105,9 +1201,19 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 6,
   },
-  pinBase: { position: "absolute", width: 30, height: 30, borderRadius: 15, backgroundColor: "#333849", alignItems: "center", justifyContent: "center" },
+  pinBase: { position: "absolute", width: 30, height: 30, borderRadius: 15, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" },
   pinTouchable: { width: "100%", height: "100%", alignItems: "center", justifyContent: "center" },
-  previewBox: { marginTop: 8, backgroundColor: "#fff", borderRadius: 12, padding: 8, width: "96%", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 4, elevation: 4 },
+
+  previewBox: {
+    marginBottom: 4,
+    backgroundColor: "Transparent",
+    borderRadius: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    width: "100%",
+
+  },
+
   previewInner: { flexDirection: "row", alignItems: "center" },
   previewImage: { width: 48, height: 48, borderRadius: 6, backgroundColor: "#eee" },
   previewTitle: { fontSize: 14, fontWeight: "600", color: "#222" },
@@ -1127,7 +1233,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  pendingLocationImage: { width: 96, height: 64, borderRadius: 8, backgroundColor: "#ddd" },
+  pendingLocationImage: { width: 96, height: 64, borderRadius: 8, backgroundColor: "#ddd", borderColor: "#377355", borderWidth: 1 },
   removeLocationBtn: { backgroundColor: "#cf2520ff", padding: 8, borderRadius: 8, marginLeft: 8, alignItems: "center", justifyContent: "center" },
   removeBtn: {
     position: "absolute",
@@ -1138,6 +1244,90 @@ const styles = StyleSheet.create({
     padding: 2,
     zIndex: 10,
   },
+  // styling Selected Doc
+  docsPreviewBox: {
+  marginBottom: 5,
+  backgroundColor: "Transparent",
+  borderRadius: 12,
+  paddingVertical: 10,
+  paddingHorizontal: 6,
+  width: "96%",
+  alignSelf: "center",
+  // shadowColor: "#000",
+  // shadowOffset: { width: 0, height: 2 },
+  // shadowOpacity: 0.08,
+  // shadowRadius: 6,
+  // elevation: 3,
+},
+
+docCard: {
+  width: 165,
+  backgroundColor: "#fafafa",
+  borderRadius: 10,
+  marginRight: 10,
+  padding: 10,
+  flexDirection: "row",
+  alignItems: "center",
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.04,
+  shadowRadius: 3,
+  elevation: 1,
+},
+
+docLeft: {
+  width: 48,
+  alignItems: "center",
+  justifyContent: "center",
+  marginRight: 8,
+},
+
+docIconBox: {
+  width: 44,
+  height: 44,
+  borderRadius: 8,
+  backgroundColor: "#eaf6ef",
+  alignItems: "center",
+  justifyContent: "center",
+},
+
+docCenter: {
+  flex: 1,
+  justifyContent: "center",
+},
+
+docName: {
+  fontSize: 13,
+  fontWeight: "600",
+  color: "#222",
+},
+
+docMeta: {
+  fontSize: 11,
+  color: "#666",
+  marginTop: 4,
+},
+
+docMetaSmall: {
+  fontSize: 11,
+  color: "#888",
+  marginTop: 4,
+},
+
+docRight: {
+  marginLeft: 8,
+  alignItems: "center",
+  justifyContent: "center",
+},
+
+docRemoveBtn: {
+  backgroundColor: "#cf2520ff",
+  width: 28,
+  height: 28,
+  borderRadius: 14,
+  alignItems: "center",
+  justifyContent: "center",
+},
 });
 
 
